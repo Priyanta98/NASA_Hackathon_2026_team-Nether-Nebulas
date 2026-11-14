@@ -1,0 +1,23 @@
+{
+  "observations": [
+    {
+      "obs_id": "SPX-BENCH-OBS-001",
+      "ra": 150.0,
+      "dec": 12.0,
+      "t_min": 60300.10,
+      "t_max": 60300.12,
+      "collection": "spherex_qr2",
+      "access_url": "https://irsa.ipac.caltech.edu/ibe/cutouts/spherex_bench_1.fits",
+      "cutout_url": "https://irsa.ipac.caltech.edu/ibe/cutouts/spherex_bench_1.fits?center=150.0,12.0&size=0.1",
+      "dataproduct_type": "image",
+      "s_fov": 0.5,
+      "s_resolution": 6.15,
+      "solar_elongation_deg": 90.0,
+      "instrument_name": "SPHEREx LVF",
+      "calib_level": 2,
+      "target_name": "Cached_Benchmark_Field",
+      "detector_band": 1,
+      "flux": 0.38
+    }
+  ]
+}
