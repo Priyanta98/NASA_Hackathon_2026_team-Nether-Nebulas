@@ -1,0 +1,142 @@
+# SPHEREx ChronoSky — Step-by-Step Build & Verification Checklist (v2: Validation-First & 3 Hero Moments)
+
+Use this updated checklist to build, validate, and demo **SPHEREx ChronoSky** around the **Credibility Layer** and the **3 Hero Moments**.
+
+---
+
+## Phase 1: Workspace, Offline Demo Cache & Environment Setup
+- [ ] **1.1 Create directory structure:** `src/{config,api,io,processing,detection,validation,catalog,db,viz}`, `backend/`, `frontend/`, `data/cached_demo/`, `reports/`, `tests/`.
+- [ ] **1.2 Create `__init__.py` files** in `src/` and all `src/*/` packages.
+- [ ] **1.3 Install dependencies:** `python -m pip install fastapi uvicorn requests numpy pandas astropy scipy scikit-learn scikit-image matplotlib plotly photutils astroquery reproject pymongo`.
+- [ ] **1.4 Pre-populate `data/cached_demo/`:** Save a cached multi-epoch FITS/JSON benchmark bundle so all 3 Hero Moments work instantaneously even if IRSA Wi-Fi lags during judging.
+
+---
+
+## Phase 2: Batch 1 — Core Data, FITS & Motion-Corrected LVF Spectra (Hero 2 Foundation)
+*(Run **Batch Prompt 1** from `SPHEREX_MASTER_SPEC_PROMPT.md`)*
+- [ ] **2.1 `src/config/settings.py`:** Add IRSA SIA2 URL, Bands 1–6 (`0.75–5.00 μm`), `FLAGS` bitmask constants, and **all 5 gap-free distance bins** (`2–5 AU`, `5–30 AU`, `30–50 AU`, **`50–100 AU Scattered Disk`**, `100–1000+ AU Sednoid/ETNO`).
+- [ ] **2.2 `src/api/spherex_client.py`:** Implement `SPHERExClient` querying `spherex_qr2` / `spherex_qr3`, cutout URLs (`?center=ra,dec&size=deg`), coverage/sensitivity constraint grids, and automatic `data/cached_demo/` fallback.
+- [ ] **2.3 `src/io/fits_handler.py`:** Read all 6 MEF extensions (`IMAGE`, `FLAGS`, `VARIANCE`, `ZODI`, `PSF`, `WCS-WAVE` `key="W"`, `sip=None`) + `inject_synthetic_sources()` for completeness maps.
+- [ ] **2.4 `src/processing/image_processor.py`:** Implement WCS reprojection, `IMAGE - ZODI` subtraction, `FLAGS` masking, `ΔSNR` differencing, RGB composites, light curves, and **Hero 2: `reconstruct_motion_corrected_spectrum()`** (extracting per-band flux along `(RA(t_i), Dec(t_i))` vs. smeared static coordinates).
+- [ ] **2.5 Verify Batch 1:** Confirm `reconstruct_motion_corrected_spectrum()` recovers a clean spectrum on a synthetic moving source where fixed-coordinate photometry drops flux in later wavelength bands.
+
+---
+
+## Phase 3: Batch 2 — Astrometry, Credibility Validator (Hero 1) & Devil's Advocate Ensemble (Hero 3)
+*(Run **Batch Prompt 2** from `SPHEREX_MASTER_SPEC_PROMPT.md`)*
+- [ ] **3.1 `src/detection/moving_object.py`:** Implement 3D `KDTree` matching, uncertainty ellipses, 3D orbit fit, and `estimate_heliocentric_distance_range_au()` using full solar-elongation geometry (~90°) and centroid error propagation to return `[distance_au_min, distance_au_median, distance_au_max]`.
+- [ ] **3.2 `src/validation/validator.py` (Hero 1 — Credibility Layer):**
+  - [ ] `run_known_object_recovery()`: Measure recall rate on known SkyBoT asteroids/Centaurs.
+  - [ ] `run_synthetic_completeness_grid()`: Inject synthetic movers across velocity × brightness/distance and compute the 2D detection efficiency matrix ("What SPHEREx Can Rule Out").
+  - [ ] `run_time_scrambled_null_test()`: Scramble epoch timestamps to measure the empirical False-Alarm Rate (FAR) per square degree and set the SNR threshold for Tier 2/3 promotion.
+- [ ] **3.3 `src/detection/ml_detector.py` (Hero 3 — Serendipity & Devil's Advocate):**
+  - [ ] 3-Stage Hybrid Ensemble (`PSF` matched filter + `IsolationForest` Serendipity scorer + `HistGradientBoosting`/`RandomForest`/`ExtraTrees` soft voting).
+  - [ ] `compute_devils_advocate_probabilities()`: Output falsification probabilities for **Cosmic Ray**, **Persistence (`MP_PERSIST`)**, **Optical Ghost**, **Proper-Motion Star**, and **Zodi Residual**.
+  - [ ] `build_evidence_card()`: Generate cutout thumbnail, `FLAGS` hex decode, UTC catalog timestamps, and SHA-256 data hash.
+  - [ ] `update_with_human_labels()`: Active-learning retraining from Blink Quest votes.
+- [ ] **3.4 `src/catalog/crossmatch.py`:** Implement SIMBAD + IMCCE SkyBoT/MPC + WISE/NEOWISE, Pan-STARRS, and Gaia DR3 proper-motion checks.
+
+---
+
+## Phase 4: Batch 3 — Continuous Evaluator, MongoDB (`2dsphere`) & Reports
+*(Run **Batch Prompt 3** from `SPHEREX_MASTER_SPEC_PROMPT.md`)*
+- [ ] **4.1 `src/db/database.py`:** Implement `TrackletDatabase` (MongoDB `2dsphere` + local JSON/SQLite fallback), Null-Test-calibrated **3-Tier Tracklet Promotion**, Serendipity Feed queries, and Blink Quest vote storage.
+- [ ] **4.2 `src/viz/reports.py`:** Export JSON, CSV, IVOA VOTable, 80-column MPC lines, and standalone HTML Evidence Cards with SHA-256 hashes and confidence badges.
+- [ ] **4.3 `backend/main.py`:** Wire FastAPI endpoints (`/api/validate-pipeline`, `/api/observations`, `/api/analyze-region`, `/api/serendipity-feed`, `/api/blink-quest-vote`, `/api/watchlist`, `/api/export`).
+
+---
+
+## Phase 5: Batch 4 — Interactive 3D Website Focused on the 3 Hero Moments
+*(Run **Batch Prompt 4** from `SPHEREX_MASTER_SPEC_PROMPT.md`)*
+- [ ] **5.1 Hero 1 UI (Credibility & Coverage Lab):** Known-object recall scorecard, Synthetic Completeness Heatmap ("What We Can Rule Out"), Null-Test FAR gauge, and Mollweide Coverage Constraint Map.
+- [ ] **5.2 Hero 2 UI (Motion-Corrected LVF Spectrum & Deep-Time Blink):** Smeared Static Spectrum vs. Motion-Corrected Track Spectrum chart (`0.75–5.0 μm`), Alpha-Blend + NEOWISE/Pan-STARRS Deep-Time Blink, and Light Curve panel.
+- [ ] **5.3 Hero 3 UI (Serendipity Feed, Devil's Advocate Card & Blink Quest):** IsolationForest anomaly feed, 5-bar Devil's Advocate falsification chart, SHA-256 Evidence Card, and Blink Quest active-learning buttons.
+- [ ] **5.4 Three.js 3D Geometry Viewer (`globe3d.js`):** Earth's orbit, Sun direction, SPHEREx sightline cones, 3D Celestial Sphere, and preliminary 3D orbit fits with `[d_min_au, d_max_au]` uncertainty cones.
+
+---
+
+## Phase 6: The 3-Minute Judge Demo Flow
+- [ ] **Minute 1 (Hero 1 — Validate First):** Show the Known-Object Recovery rate, the Synthetic Completeness Map ("what distances & magnitudes SPHEREx can rule out"), and the Time-Scrambled Null Test false-alarm rate.
+- [ ] **Minute 2 (Hero 2 — Motion-Corrected SPHEREx Spectrum):** Blink a moving dipole, show its 3D sightline geometry and `[d_min_au, d_max_au]` range, and toggle **Static vs. Motion-Corrected LVF Spectrum** to reveal how tracking along `(RA(t), Dec(t))` un-smears the $0.75\text{–}5.0\,\mu\text{m}$ ice spectrum.
+- [ ] **Minute 3 (Hero 3 — Devil's Advocate & Serendipity):** Open a candidate's **Devil's Advocate Evidence Card** (falsification probabilities + `FLAGS` bitmask + SHA-256 hash), cast a live **Blink Quest** active-learning vote, and export the MPC/VOTable packet.
+
+
+
+Structure: 
+spherex-chronosky/
+├── .env.example                     # Template for optional MONGODB_URI & config vars
+├── .gitignore                       # Ignores .env, venv/, __pycache__/, *.fits (keeps requirements.txt)
+├── README.md                        # Project overview, scientific disclaimer & setup guide
+├── requirements.txt                 # Pinned Python dependencies for local & Render deploy
+├── run_app.py                       # One-command launcher (starts FastAPI + 3D Web UI)
+│
+├── backend/
+│   ├── __init__.py
+│   └── main.py                      # FastAPI server + async Continuous Evaluator + REST endpoints
+│
+├── frontend/                        # Interactive 3D Web Application (Three.js + Vanilla JS)
+│   ├── index.html                   # 3-Hero-Moment layout + persistent scientific disclaimer
+│   ├── style.css                    # Space-grade dark glassmorphic/bento styling
+│   ├── globe3d.js                   # Three.js 3D Celestial Sphere, Earth/Sun vectors & 3D orbit fits
+│   └── app.js                       # API fetch bindings, Deep-Time Blink, Light Curve & Blink Quest
+│
+├── src/                             # Core Python Science & ML Engine
+│   ├── __init__.py
+│   ├── config/
+│   │   ├── __init__.py
+│   │   └── settings.py              # IRSA SIA2 URLs, LVF Bands 1-6, FLAGS bitmasks & 5 AU bins
+│   │
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── spherex_client.py        # IRSA SIA2 client, cutout URL builder & coverage footprint grid
+│   │
+│   ├── io/
+│   │   ├── __init__.py
+│   │   └── fits_handler.py          # 6-HDU Level 2 MEF reader (IMAGE, FLAGS, VARIANCE, ZODI, PSF, WCS-WAVE)
+│   │
+│   ├── processing/
+│   │   ├── __init__.py
+│   │   └── image_processor.py       # WCS reprojection, ZODI subtraction, ΔSNR & Hero 2 Motion-Corrected Spectra
+│   │
+│   ├── detection/
+│   │   ├── __init__.py
+│   │   ├── moving_object.py         # 3D KDTree linker, error ellipses, 3D orbit fit & [d_min, d_max] AU range
+│   │   └── ml_detector.py           # 3-Stage Hybrid Ensemble + Hero 3 Devil's Advocate & Evidence Card
+│   │
+│   ├── validation/
+│   │   ├── __init__.py
+│   │   └── validator.py             # Hero 1 Credibility Layer: SkyBoT recall, Completeness Map & Null Test FAR
+│   │
+│   ├── catalog/
+│   │   ├── __init__.py
+│   │   └── crossmatch.py            # SIMBAD, IMCCE SkyBoT/MPC, NEOWISE, Pan-STARRS, Gaia DR3 & LVF ice class
+│   │
+│   ├── db/
+│   │   ├── __init__.py
+│   │   └── database.py              # Dual-mode MongoDB Atlas (2dsphere) + local JSON/SQLite fallback
+│   │
+│   ├── viz/
+│   │   ├── __init__.py
+│   │   ├── sky_map.py               # All-sky Mollweide selector & sensitivity constraint heatmap
+│   │   ├── viewer_3d.py             # Plotly 3D geometry & trajectory helper
+│   │   └── reports.py               # JSON, CSV, IVOA VOTable, 80-col MPC & SHA-256 HTML Evidence Cards
+│   │
+│   └── utils/
+│       ├── __init__.py
+│       └── helpers.py               # Coordinate conversions, MJD utilities & SHA-256 hashing
+│
+├── data/
+│   ├── cached_demo/                 # Pre-cached multi-epoch benchmark so all 3 Hero Moments work offline
+│   │   └── benchmark_epochs.json
+│   └── tracklets_store.json         # Automatic local fallback DB when MONGODB_URI is not set
+│
+├── reports/                         # Generated discovery packets & exports
+│   ├── data/                        # CSV, VOTable & 80-column MPC files
+│   ├── docs/                        # Standalone HTML Evidence Cards & JSON reports
+│   └── images/                      # Saved cutout & difference thumbnails
+│
+└── tests/                           # Automated Test Suite
+    ├── __init__.py
+    ├── test_spherex_client.py       # Unit tests for SIA2 queries & MEF parsing
+    ├── test_validator.py            # Tests for Known-Object Recovery, Completeness & Null Test
+    └── test_integration.py          # End-to-end API & pipeline verification
