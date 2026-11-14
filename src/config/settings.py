@@ -1,5 +1,6 @@
 """
 Central configuration, mission constants, bitmasks, and dynamical bins for SPHEREx ChronoSky.
+Updated with all 5 official IRSA SIA2 SPHEREx collections (DR1 + QR3).
 """
 from __future__ import annotations
 
@@ -18,10 +19,11 @@ class Settings:
     TEMP_DIR: str = str(DATA_DIR / "temp_fits")
     REPORTS_DIR: Path = BASE_DIR / "reports"
 
-    # NASA/IPAC IRSA SIA v2 & TAP Configuration (Public — no API key required)
+    # NASA/IPAC IRSA SIA v2 & Browsable Directories Configuration (Public — no API key required)
     IRSA_BASE_URL: str = os.environ.get("IRSA_BASE_URL", "https://irsa.ipac.caltech.edu").rstrip("/")
     IRSA_SIA2_URL: str = f"{IRSA_BASE_URL}/SIA"
     IRSA_TAP_URL: str = f"{IRSA_BASE_URL}/TAP/sync"
+    IRSA_IBE_ROOT: str = f"{IRSA_BASE_URL}/ibe/data/spherex"
     MAX_REC_DEFAULT: int = 200
     IMAGE_DISPLAY_DPI: int = 120
 
@@ -38,12 +40,14 @@ class Settings:
         "to Planet Nine detection."
     )
 
-    # SPHEREx Public Collections at IRSA
+    # Official SPHEREx Public Collections at IRSA (DR1 + QR3 + Legacy QR2 Browsable)
     COLLECTIONS: List[str] = [
-        "spherex_qr2",
+        "spherex_dr1",
+        "spherex_dr1_deep",
+        "spherex_dr1_cube",
         "spherex_qr3",
-        "spherex_qr2_deep",
         "spherex_qr3_deep",
+        "spherex_qr2",
     ]
 
     # SPHEREx 6 Detector Linear Variable Filter (LVF) Bands (0.75 - 5.00 um)
@@ -87,7 +91,6 @@ class Settings:
         {"min_au": 100.0, "max_au": 2000.0, "label": "Sednoid / Inner Oort / Extreme TNO Regime (100–500+ AU)"},
     ]
 
-    # Hoverable 3D Search Probability Corridors & Watched Sky Sectors
     PROBABILITY_CORRIDORS: List[Dict[str, Any]] = [
         {
             "zone_id": "ZONE-NEP-DEEP",

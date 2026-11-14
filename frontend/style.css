@@ -1,0 +1,929 @@
+/* ============================================================================
+   SPHEREx ChronoSky — Professional Observatory UI Stylesheet (style.css)
+   - Dark Mode: Minimalist Bento Grid (#050811 Obsidian, Slate Panels, Sky-Blue Accent)
+   - Light Mode: Frosted Glassmorphism (#EEF2F6 Alabaster, Translucent White Glass)
+   - Zero purple gradients, zero emojis, high readability for beginners
+   ============================================================================ */
+
+:root[data-theme="dark"] {
+  --bg-primary: #050811;
+  --bg-secondary: rgba(11, 18, 33, 0.84);
+  --bg-card: rgba(15, 23, 42, 0.78);
+  --bg-card-solid: #0f172a;
+  --bg-input: #090f1d;
+  --border-subtle: rgba(148, 163, 184, 0.16);
+  --border-focus: rgba(56, 189, 248, 0.55);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --accent-primary: #38bdf8;
+  --accent-secondary: #0284c7;
+  --accent-amber: #f59e0b;
+  --accent-emerald: #10b981;
+  --btn-primary-bg: #0284c7;
+  --btn-primary-text: #ffffff;
+  --shadow-elevated: 0 18px 42px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="light"] {
+  --bg-primary: #eef2f6;
+  --bg-secondary: rgba(255, 255, 255, 0.78);
+  --bg-card: rgba(255, 255, 255, 0.74);
+  --bg-card-solid: #ffffff;
+  --bg-input: rgba(241, 245, 249, 0.92);
+  --border-subtle: rgba(15, 23, 42, 0.12);
+  --border-focus: rgba(2, 132, 199, 0.55);
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #475569;
+  --accent-primary: #0284c7;
+  --accent-secondary: #0369a1;
+  --accent-amber: #d97706;
+  --accent-emerald: #059669;
+  --btn-primary-bg: #0284c7;
+  --btn-primary-text: #ffffff;
+  --shadow-elevated: 0 16px 36px rgba(15, 23, 42, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  min-height: 100vh;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+h1, h2, h3, h4, .brand-title {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.mono-tag, .mono-label, code {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Full-screen Three.js Canvas */
+#space-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: auto;
+}
+
+/* Top Navigation Bar */
+header.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  padding: 0 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 40;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.brand-mark {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  background: rgba(2, 132, 199, 0.16);
+  border: 1px solid var(--border-focus);
+  color: var(--accent-primary);
+}
+
+.brand-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border-subtle);
+}
+
+.brand-title {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.brand-title span {
+  color: var(--accent-primary);
+}
+
+nav.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  padding: 0.45rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  color: var(--text-primary);
+}
+
+.nav-btn.active {
+  color: var(--text-primary);
+  background: rgba(2, 132, 199, 0.14);
+  border-color: var(--border-focus);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.clean-select {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 0.42rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.theme-toggle {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 0.42rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent-primary);
+}
+
+/* Warp Speed / Spaceship Transit HUD */
+.warp-hud {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, transparent 35%, rgba(5, 8, 17, 0.65) 100%);
+}
+
+.warp-telemetry {
+  background: var(--bg-secondary);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-focus);
+  border-radius: 14px;
+  padding: 1.5rem 2.2rem;
+  width: min(580px, 92vw);
+  text-align: center;
+  box-shadow: var(--shadow-elevated);
+}
+
+.mono-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  color: var(--accent-primary);
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.warp-telemetry h2 {
+  font-size: 1.12rem;
+  margin-bottom: 1rem;
+}
+
+.warp-progress-track {
+  width: 100%;
+  height: 6px;
+  background: var(--border-subtle);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.warp-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent-primary);
+  transition: width 0.08s linear;
+}
+
+.warp-readout {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+/* Hero Viewport Section (Clean, No Bottom Clutter) */
+.viewport-section {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  padding: 112px 4rem 2.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.hero-copy {
+  max-width: 600px;
+  margin-top: 5vh;
+  pointer-events: auto;
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--accent-primary);
+  margin-bottom: 1rem;
+}
+
+h1.hero-heading {
+  font-size: clamp(3.1rem, 5.2vw, 4.6rem);
+  font-weight: 800;
+  line-height: 1.04;
+  margin-bottom: 1rem;
+}
+
+h1.hero-heading .accent-title {
+  display: block;
+  color: var(--accent-primary);
+}
+
+.hero-subtitle {
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.9rem;
+}
+
+.hero-description {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-primary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.82rem 1.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-primary-action:hover {
+  transform: translateY(-2px);
+  background: var(--accent-secondary);
+}
+
+.btn-secondary-action {
+  padding: 0.78rem 1.35rem;
+  border-radius: 10px;
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.86rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.btn-secondary-action:hover {
+  border-color: var(--accent-primary);
+}
+
+/* Target Telemetry Overlay + Multi-Decade Time-Travel Sliding Bar */
+.target-telemetry-overlay {
+  pointer-events: auto;
+  margin-top: auto;
+  margin-bottom: 1.2rem;
+  background: var(--bg-secondary);
+  backdrop-filter: blur(22px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 1.3rem 1.6rem;
+  box-shadow: var(--shadow-elevated);
+}
+
+.telemetry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.telemetry-header-actions {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.mono-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.stagger-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.9rem;
+  margin-bottom: 1.1rem;
+}
+
+.stat-reveal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  opacity: 0;
+  transform: translateY(14px);
+  animation: revealStatCard 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--delay, 0.1s);
+}
+
+@keyframes revealStatCard {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.stat-note {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* *1: Multi-Decade Time-Travel Sliding Bar Console */
+.time-travel-console {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.tt-console-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tt-console-top h4 {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.deep-time-slider {
+  width: 100%;
+  height: 8px;
+  appearance: none;
+  background: var(--bg-input);
+  border: 1px solid var(--border-focus);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.deep-time-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.65);
+  cursor: grab;
+}
+
+.tt-milestone-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.tt-milestone-ticks span {
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.tt-milestone-ticks span:hover,
+.tt-milestone-ticks span.active-tick {
+  color: var(--accent-primary);
+  background: rgba(2, 132, 199, 0.14);
+}
+
+.timespan-visual-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.ts-node {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.72rem;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.ts-node.active {
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+}
+
+.ts-node strong {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent-primary);
+  font-size: 0.74rem;
+}
+
+/* Downward Scroll Button */
+.scroll-down-wrap {
+  pointer-events: auto;
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+}
+
+.scroll-down-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+
+.scroll-down-text {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.scroll-capsule {
+  width: 30px;
+  height: 46px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-subtle);
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.scroll-down-btn:hover .scroll-capsule {
+  border-color: var(--accent-primary);
+  transform: translateY(4px);
+}
+
+/* Stage 2: Details & Expandable 3D Analysis Section */
+.details-section {
+  position: relative;
+  z-index: 20;
+  background: var(--bg-secondary);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid var(--border-subtle);
+  padding: 4.5rem 4rem 5rem;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.details-container {
+  max-width: 1320px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2.2rem;
+}
+
+.scope-notice-card {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-left: 4px solid var(--accent-primary);
+  border-radius: 12px;
+  padding: 1rem 1.4rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.scope-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  background: rgba(2, 132, 199, 0.15);
+  color: var(--accent-primary);
+  white-space: nowrap;
+}
+
+.section-header-block h2 {
+  font-size: 1.85rem;
+  margin-bottom: 0.4rem;
+}
+
+.section-header-block p {
+  color: var(--text-muted);
+  font-size: 0.98rem;
+}
+
+.beginner-explainer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.4rem;
+}
+
+.explainer-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-elevated);
+}
+
+.step-index {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  margin-bottom: 0.55rem;
+}
+
+.explainer-card h3 {
+  font-size: 1.08rem;
+  margin-bottom: 0.5rem;
+}
+
+.explainer-card p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* Control Bar */
+.control-bar-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.control-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field-group label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.field-group input,
+.field-group select {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 0.52rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.86rem;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Analysis Bento Grid */
+.analysis-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.4rem;
+}
+
+.analysis-card, .table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: var(--shadow-elevated);
+}
+
+.card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.card-top-row h3 {
+  font-size: 1.04rem;
+}
+
+.expand-3d-btn {
+  background: rgba(2, 132, 199, 0.14);
+  color: var(--accent-primary);
+  border: 1px solid var(--border-focus);
+  padding: 0.38rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.expand-3d-btn:hover {
+  background: var(--btn-primary-bg);
+  color: #ffffff;
+}
+
+.card-plain-desc {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* Heatmap, Spectrum & Falsification Bars */
+.heatmap-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.74rem;
+}
+
+.hm-row {
+  display: grid;
+  grid-template-columns: 110px repeat(5, 1fr);
+  gap: 4px;
+  align-items: center;
+}
+
+.hm-cell {
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.spectrum-chart, .da-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.spec-row {
+  display: grid;
+  grid-template-columns: 74px 1fr 48px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+}
+
+.spec-bars-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.spec-bar-track {
+  height: 7px;
+  background: var(--accent-primary);
+  border-radius: 4px;
+}
+
+.spec-bar-static {
+  height: 5px;
+  background: rgba(148, 163, 184, 0.42);
+  border-radius: 4px;
+}
+
+.da-row {
+  display: grid;
+  grid-template-columns: 128px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+}
+
+.da-bar-bg {
+  height: 8px;
+  background: var(--bg-input);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.da-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.evidence-box {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.75rem;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* Candidate Table */
+.export-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.clean-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.clean-table th,
+.clean-table td {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+}
+
+.clean-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.clean-table tr:hover {
+  background: rgba(2, 132, 199, 0.08);
+  cursor: pointer;
+}
+
+/* Modal for Expandable 3D Graphs (Requirement 11) */
+.modal-3d-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(5, 8, 17, 0.78);
+  backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.modal-3d-card {
+  width: min(1040px, 94vw);
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-focus);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.modal-3d-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.plotly-3d-stage {
+  width: 100%;
+  height: 520px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+@media (max-width: 1024px) {
+  .stagger-grid,
+  .beginner-explainer-grid,
+  .analysis-bento-grid,
+  .timespan-visual-strip {
+    grid-template-columns: 1fr;
+  }
+}

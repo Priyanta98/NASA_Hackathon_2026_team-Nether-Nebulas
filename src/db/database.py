@@ -144,6 +144,14 @@ class TrackletDatabase:
         else:
             badge = "Tier 1: Unconfirmed Single-Pair Dipole"
 
+        inc_anns = incoming.get("annotations", [])
+        ext_anns = existing.get("annotations", [])
+        merged_anns = inc_anns if len(inc_anns) >= len(ext_anns) else ext_anns
+
+        inc_votes = incoming.get("human_vetting_labels", [])
+        ext_votes = existing.get("human_vetting_labels", [])
+        merged_votes = inc_votes if len(inc_votes) >= len(ext_votes) else ext_votes
+
         return {
             **existing,
             **incoming,
@@ -151,8 +159,8 @@ class TrackletDatabase:
             "ensemble_confidence_pct": new_conf,
             "promotion_tier": tier,
             "promotion_badge": badge,
-            "annotations": existing.get("annotations", []),
-            "human_vetting_labels": existing.get("human_vetting_labels", []),
+            "annotations": merged_anns,
+            "human_vetting_labels": merged_votes,
         }
 
     def get_all_tracklets(self, limit: int = 100) -> List[Dict[str, Any]]:
