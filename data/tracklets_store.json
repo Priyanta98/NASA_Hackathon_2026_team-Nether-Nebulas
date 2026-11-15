@@ -3,10 +3,10 @@
     "candidate_id": "SPX-TRK-002",
     "obs_id1": "2026W12_2B_0101_D2",
     "obs_id2": "2026W18_2B_0104_D2",
-    "ra1": 304.640161,
-    "dec1": 42.46944,
-    "ra2": 304.681903,
-    "dec2": 42.488105,
+    "ra1": 293.80034,
+    "dec1": 33.81364,
+    "ra2": 293.837403,
+    "dec2": 33.832305,
     "t_min1": 60850.0,
     "t_min2": 60869.5,
     "flux1": 13.675,
@@ -15,21 +15,21 @@
     "y_pix_ep2": 89.99,
     "dipole_symmetry": 0.97,
     "shift_pixels": 21.08,
-    "motion_angular_velocity": 6.6466,
+    "motion_angular_velocity": 6.6473,
     "motion_velocity_err": 0.0262,
-    "motion_pa_deg": 58.76,
+    "motion_pa_deg": 58.77,
     "significance": 15.66,
     "positional_uncertainty": 0.361,
     "distance_au_min": 21.5,
     "distance_au_median": 25.3,
     "distance_au_max": 29.2,
     "dynamical_regime": "Centaur / Giant-Planet Crossing Regime (5\u201330 AU)",
-    "documentary_narration": "SPX-TRK-002: Moving dipole shifting at 6.65 \u00b1 0.03 \"/day (PA 58.8\u00b0). Solar-elongation parallax constrains heliocentric distance to 21.5\u201329.2 AU (Centaur / Giant-Planet Crossing Regime (5\u201330 AU)). Motion-corrected LVF spectroscopy recovers +253.9% SNR across Bands 1\u20136.",
+    "documentary_narration": "SPX-TRK-002: Moving dipole shifting at 6.65 \u00b1 0.03 \"/day (PA 58.8\u00b0). Solar-elongation parallax constrains heliocentric distance to 21.5\u201329.2 AU (Centaur / Giant-Planet Crossing Regime (5\u201330 AU)). Motion-corrected LVF spectroscopy recovers +254.0% SNR across Bands 1\u20136.",
     "static_spectrum_fluxes": [
       9.819,
-      5.389,
+      5.388,
       0.527,
-      0.007,
+      0.006,
       0.0,
       0.0
     ],
@@ -57,7 +57,7 @@
       0.57,
       0.6
     ],
-    "snr_recovery_gain_pct": 253.9,
+    "snr_recovery_gain_pct": 254.0,
     "light_curve": [
       {
         "mjd": 60850.0,
@@ -83,66 +83,66 @@
     "orbit_fit_points": [
       {
         "mjd": 60850.0,
-        "ra": 304.64016,
-        "dec": 42.46944,
-        "x_au": 0.8058,
-        "y_au": 1.2975,
-        "z_au": -1.1663,
+        "ra": 293.80034,
+        "dec": 33.81364,
+        "x_au": 0.6443,
+        "y_au": 1.0694,
+        "z_au": -1.4609,
         "distance_au": 25.3,
         "uncertainty_radius_au": 1.92,
         "epoch_type": "observed"
       },
       {
         "mjd": 60859.75,
-        "ra": 304.66103,
-        "dec": 42.47877,
-        "x_au": 0.8061,
-        "y_au": 1.2978,
-        "z_au": -1.1658,
+        "ra": 293.81887,
+        "dec": 33.82297,
+        "x_au": 0.6447,
+        "y_au": 1.0697,
+        "z_au": -1.4605,
         "distance_au": 25.3,
         "uncertainty_radius_au": 1.92,
         "epoch_type": "observed"
       },
       {
         "mjd": 60869.5,
-        "ra": 304.6819,
-        "dec": 42.4881,
-        "x_au": 0.8064,
-        "y_au": 1.298,
-        "z_au": -1.1653,
+        "ra": 293.8374,
+        "dec": 33.8323,
+        "x_au": 0.6451,
+        "y_au": 1.0699,
+        "z_au": -1.4601,
         "distance_au": 25.3,
         "uncertainty_radius_au": 1.92,
         "epoch_type": "observed"
       },
       {
         "mjd": 60889.0,
-        "ra": 304.72364,
-        "dec": 42.50677,
-        "x_au": 0.807,
-        "y_au": 1.2985,
-        "z_au": -1.1644,
+        "ra": 293.87447,
+        "dec": 33.85097,
+        "x_au": 0.6459,
+        "y_au": 1.0705,
+        "z_au": -1.4594,
         "distance_au": 25.3,
         "uncertainty_radius_au": 5.39,
         "epoch_type": "predicted"
       },
       {
         "mjd": 60918.25,
-        "ra": 304.78626,
-        "dec": 42.53477,
-        "x_au": 0.8079,
-        "y_au": 1.2992,
-        "z_au": -1.163,
+        "ra": 293.93006,
+        "dec": 33.87897,
+        "x_au": 0.6471,
+        "y_au": 1.0712,
+        "z_au": -1.4583,
         "distance_au": 25.3,
         "uncertainty_radius_au": 8.08,
         "epoch_type": "predicted"
       },
       {
         "mjd": 60947.5,
-        "ra": 304.84887,
-        "dec": 42.56277,
-        "x_au": 0.8088,
-        "y_au": 1.2998,
-        "z_au": -1.1616,
+        "ra": 293.98566,
+        "dec": 33.90697,
+        "x_au": 0.6483,
+        "y_au": 1.072,
+        "z_au": -1.4572,
         "distance_au": 25.3,
         "uncertainty_radius_au": 10.78,
         "epoch_type": "predicted"
@@ -150,8 +150,8 @@
     ],
     "probability_corridor": {
       "zone_name": "Constrained Orbital Corridor (Centaur / Giant-Planet Crossing Regime (5\u201330 AU))",
-      "ra_center": 304.6819,
-      "dec_center": 42.4881,
+      "ra_center": 293.8374,
+      "dec_center": 33.8323,
       "span_deg": 1.8,
       "sensitivity_limit_mjy_sr": 13.5,
       "coverage_epochs": 16,
@@ -197,7 +197,7 @@
       "panstarrs": "Undetected in PS1 r/i/z static stack (rules out background star)",
       "gaia_dr3_pm_mas_yr": 0.0
     },
-    "crossmatch_timestamp": "1794735909.9000182",
+    "crossmatch_timestamp": "1794746051.2048879",
     "psf_correlation": 0.878,
     "isolation_anomaly_score": 0.95,
     "supervised_prob": 0.995,
@@ -216,8 +216,8 @@
       "active_flag_names": [
         "CLEAN_PIXEL"
       ],
-      "catalog_queried_utc": "2026-11-15T09:45:10Z",
-      "data_sha256": "b0576c6eee5ad6de1637955de8cbfb2a7a2eb44d33b2f8d561ba4e7ff4753e3a",
+      "catalog_queried_utc": "2026-11-15T12:34:11Z",
+      "data_sha256": "838f0c6e693e56612f1848c07a015fd679dcecf1876e8bd837d92fdaef55ff0a",
       "cutout_b64": "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"
     },
     "promotion_tier": 2,
@@ -225,23 +225,23 @@
     "location": {
       "type": "Point",
       "coordinates": [
-        -55.318097,
-        42.488105
+        -66.162597,
+        33.832305
       ]
     },
-    "updated_utc": "2026-11-15T09:45:10Z",
+    "updated_utc": "2026-11-15T12:34:11Z",
     "annotations": [],
     "human_vetting_labels": [],
-    "sweep_sightings": 118
+    "sweep_sightings": 143
   },
   {
     "candidate_id": "SPX-TRK-001",
     "obs_id1": "2026W12_2B_0101_D2",
     "obs_id2": "2026W18_2B_0104_D2",
-    "ra1": 304.741856,
-    "dec1": 42.426541,
-    "ra2": 304.721469,
-    "dec2": 42.43516,
+    "ra1": 293.890635,
+    "dec1": 33.770741,
+    "ra2": 293.872534,
+    "dec2": 33.77936,
     "t_min1": 60850.0,
     "t_min2": 60869.5,
     "flux1": 18.526,
@@ -250,7 +250,7 @@
     "y_pix_ep2": 59.0,
     "dipole_symmetry": 0.813,
     "shift_pixels": 10.15,
-    "motion_angular_velocity": 3.2014,
+    "motion_angular_velocity": 3.2012,
     "motion_velocity_err": 0.0256,
     "motion_pa_deg": 299.81,
     "significance": 17.61,
@@ -263,9 +263,9 @@
     "static_spectrum_fluxes": [
       18.674,
       18.243,
-      10.061,
+      10.062,
       2.219,
-      1.03,
+      1.031,
       0.232
     ],
     "motion_corrected_wavelengths_um": [
@@ -318,66 +318,66 @@
     "orbit_fit_points": [
       {
         "mjd": 60850.0,
-        "ra": 304.74186,
-        "dec": 42.42654,
-        "x_au": 0.8731,
-        "y_au": 1.4003,
-        "z_au": -1.259,
+        "ra": 293.89064,
+        "dec": 33.77074,
+        "x_au": 0.6988,
+        "y_au": 1.1538,
+        "z_au": -1.5776,
         "distance_au": 48.2,
         "uncertainty_radius_au": 3.65,
         "epoch_type": "observed"
       },
       {
         "mjd": 60859.75,
-        "ra": 304.73166,
-        "dec": 42.43085,
-        "x_au": 0.8729,
-        "y_au": 1.4005,
-        "z_au": -1.2591,
+        "ra": 293.88158,
+        "dec": 33.77505,
+        "x_au": 0.6985,
+        "y_au": 1.1539,
+        "z_au": -1.5776,
         "distance_au": 48.2,
         "uncertainty_radius_au": 3.65,
         "epoch_type": "observed"
       },
       {
         "mjd": 60869.5,
-        "ra": 304.72147,
-        "dec": 42.43516,
-        "x_au": 0.8726,
-        "y_au": 1.4006,
-        "z_au": -1.2591,
+        "ra": 293.87253,
+        "dec": 33.77936,
+        "x_au": 0.6982,
+        "y_au": 1.1541,
+        "z_au": -1.5777,
         "distance_au": 48.2,
         "uncertainty_radius_au": 3.65,
         "epoch_type": "observed"
       },
       {
         "mjd": 60889.0,
-        "ra": 304.70108,
-        "dec": 42.44378,
-        "x_au": 0.872,
-        "y_au": 1.4008,
-        "z_au": -1.2593,
+        "ra": 293.85443,
+        "dec": 33.78798,
+        "x_au": 0.6977,
+        "y_au": 1.1543,
+        "z_au": -1.5777,
         "distance_au": 48.2,
         "uncertainty_radius_au": 10.22,
         "epoch_type": "predicted"
       },
       {
         "mjd": 60918.25,
-        "ra": 304.6705,
-        "dec": 42.45671,
-        "x_au": 0.8712,
-        "y_au": 1.4011,
-        "z_au": -1.2595,
+        "ra": 293.82728,
+        "dec": 33.80091,
+        "x_au": 0.6968,
+        "y_au": 1.1547,
+        "z_au": -1.5778,
         "distance_au": 48.2,
         "uncertainty_radius_au": 15.33,
         "epoch_type": "predicted"
       },
       {
         "mjd": 60947.5,
-        "ra": 304.63992,
-        "dec": 42.46964,
-        "x_au": 0.8703,
-        "y_au": 1.4015,
-        "z_au": -1.2597,
+        "ra": 293.80013,
+        "dec": 33.81384,
+        "x_au": 0.6959,
+        "y_au": 1.1551,
+        "z_au": -1.5779,
         "distance_au": 48.2,
         "uncertainty_radius_au": 20.44,
         "epoch_type": "predicted"
@@ -385,8 +385,8 @@
     ],
     "probability_corridor": {
       "zone_name": "Constrained Orbital Corridor (Classical Kuiper Belt / Plutino Regime (30\u201350 AU))",
-      "ra_center": 304.7215,
-      "dec_center": 42.4352,
+      "ra_center": 293.8725,
+      "dec_center": 33.7794,
       "span_deg": 1.8,
       "sensitivity_limit_mjy_sr": 13.5,
       "coverage_epochs": 16,
@@ -430,7 +430,7 @@
       "panstarrs": "Undetected in PS1 r/i/z static stack (rules out background star)",
       "gaia_dr3_pm_mas_yr": 0.0
     },
-    "crossmatch_timestamp": "1794735909.8987267",
+    "crossmatch_timestamp": "1794746051.1952024",
     "psf_correlation": 0.802,
     "isolation_anomaly_score": 0.55,
     "supervised_prob": 0.998,
@@ -449,8 +449,8 @@
       "active_flag_names": [
         "CLEAN_PIXEL"
       ],
-      "catalog_queried_utc": "2026-11-15T09:45:09Z",
-      "data_sha256": "b0576c6eee5ad6de1637955de8cbfb2a7a2eb44d33b2f8d561ba4e7ff4753e3a",
+      "catalog_queried_utc": "2026-11-15T12:34:11Z",
+      "data_sha256": "838f0c6e693e56612f1848c07a015fd679dcecf1876e8bd837d92fdaef55ff0a",
       "cutout_b64": "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RTABUIpgAqAUwQRAKYIJgFIEEwClCCYAShFMAJQimAAoRTABUIpgAqAUwQRAKXe7LpblsuPHtGwqG+uq829fvOTV1mW0IZsd09/1djibbW0XzW061h1sw89zmvL3p7Vl1VUtB9OSrS3Y7R9Hc9twdcXBveOvZ2dOJ/GZmzGb3W7uxWde755Ec0u4amPJLrtbU7hypWel0T6877UWrpX5X56YAChFMAFQimACoBTBBEApggmAUgQTAKUIJgBKEUwAlCKYAChFMAFQimACoBTBBEApggmAUjrqq79sE87NqzZD97RDp03oPVq77pke1nSyfRjP3j/5VjR3tvlafOaDlp3Zwmv24JPh3Wju6U02N01HQ+re9kE0dzq+np85vBbNXU5P4zM/jduzl9Wvn2XJNxyk0mby3vulJyYAShFMAJQimAAoRTABUIpgAqAUwQRAKYIJgFIEEwClCCYAShFMAJQimAAoRTABUIpgAqAUwQRAKXed5uN40vFjllWr49PVFT1nvpy1ID3S9zZblfDKyTeG1B+NP4zm/vjhWXzm91/L1g9czGN85r9//DvR3I/Ht6K5j+afD2s7He7Hs28ub0Zz70+7+Mx5yVbLLG23+v1nbjfR3BSurridnY7Dyfw6uD23axoAXjDBBEApggmAUgQTAKUIJgBKEUwAlCKYAChFMAFQimACoBTBBEApggmAUgQTAKUIJgBKuaud3WzypuZluRrW1NPQ28JW4HE87mjoPV39fd1Mr0Zz906yhufvjX82pH70u9n785c//Fl85r0ffS+aa+99HJ/5h3+XNbff/Pd3orl/u3k6pM7nD6O5x9N78ZkX05No7nz/fnzm5c0n0dw8n0dzrWWt9gfjkDXbT0dvdJz5cp5dPDEBUIpgAqAUwQRAKYIJgFIEEwClCCYAShFMAJQimAAoRTABUIpgAqAUwQRAKYIJgFIEEwA128VfRotsazfhZNayezs5Hq3aEN7Xhp5/Jsfb16O5N05+P5r7wf3svIO/+MEvornjv/nr+My84zn3Jx/8QzT3L3/7WjT3H5/cH1If7n4aze3ny/jMKfxu3szP4jOX5WbVbQOtZa3kB21Y9zV+dmZ678o3QBzue56YAChFMAFQimACoBTBBEApggmAUgQTAKUIJgBKEUwAlCKYAChFMAFQimACoBTBBEApggmAUgQTADXXXuz3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"
     },
     "promotion_tier": 3,
@@ -458,13 +458,13 @@
     "location": {
       "type": "Point",
       "coordinates": [
-        -55.278531,
-        42.43516
+        -66.127466,
+        33.77936
       ]
     },
-    "updated_utc": "2026-11-15T09:45:10Z",
+    "updated_utc": "2026-11-15T12:34:11Z",
     "annotations": [],
     "human_vetting_labels": [],
-    "sweep_sightings": 118
+    "sweep_sightings": 143
   }
 ]
