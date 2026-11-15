@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=3.5" />
   <!-- Three.js r128 + OrbitControls + Plotly 3D -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -253,6 +253,17 @@
           </article>
         </div>
 
+        
+        <!-- Dynamic Mission-Specific Detailed Guide (Updates when user selects Missions 5-8) -->
+        <div id="mission-detailed-guide" class="mission-detailed-guide hidden">
+          <div class="section-header-block">
+            <span class="mono-tag" id="mdg-eyebrow">ACTIVE MISSION DEEP DIVE</span>
+            <h2 id="mdg-title">Mission Physics &amp; Interpretation</h2>
+            <p id="mdg-subtitle">Detailed step-by-step explanation of the active mission module.</p>
+          </div>
+          <div id="mdg-cards-grid" class="beginner-explainer-grid"></div>
+        </div>
+
         <!-- Full Interactive Coordinate, Survey Collection & Target Planet Selector Bar -->
         <div class="control-bar-card">
           <div class="control-inputs">
@@ -394,7 +405,71 @@
     </div>
   </div>
 
-  <script src="globe3d.js"></script>
-  <script src="app.js"></script>
+  
+  <!-- v3 Mission Registry Selector & Persistent Guardrail -->
+  <select id="mission-selector" aria-label="Mission Registry Selector" onchange="switchMissionV3(this.value)" style="position:fixed;top:70px;right:20px;z-index:1001;background:rgba(0,0,30,0.85);border:1px solid #00ffff;color:#fff;padding:8px 16px;border-radius:20px;font-family:'Segoe UI',sans-serif;font-size:13px;">
+    <option value="core">Core 3-Hero Demo (Shipped)</option>
+    <option value="navigator">Mission 5: Approach Navigator</option>
+    <option value="interstellar">Mission 6: Interstellar Object Hunter</option>
+    <option value="ocean">Mission 7: Icy Ocean World Spectroscopist</option>
+    <option value="multi">Mission 8: Multi-Survey Consensus</option>
+  </select>
+
+  <div id="v3-disclaimer-bar" class="v3-disclaimer-bar" role="note">
+    <strong>SCIENTIFIC GUARDRAIL:</strong> SPHEREx ChronoSky visualizes temporal changes, reconstructs motion-corrected 0.75-5.0 um spectra, quantifies detection completeness, and flags candidates for review. It does not claim Planet Nine discovery.
+  </div>
+
+  <!-- v3 Mission 5-9 Interactive Drawer (slides cleanly on demand without obstructing core HUD) -->
+  <aside id="v3-mission-drawer" class="v3-mission-drawer" hidden aria-label="Mission Controls">
+    <div id="v3-panel-navigator" class="v3-subpanel" hidden>
+      <h4>Mission 5: Approach Navigator</h4>
+      <label for="v3-standoff-slider">Standoff Distance: <strong id="v3-standoff-val">12 AU</strong></label>
+      <input id="v3-standoff-slider" type="range" min="1" max="200" step="1" value="12" aria-label="Standoff Distance AU" />
+      <label for="v3-exposure-slider">Exposure Time: <strong id="v3-exposure-val">1800 s</strong></label>
+      <input id="v3-exposure-slider" type="range" min="100" max="7200" step="100" value="1800" aria-label="Exposure Time Seconds" />
+      <div id="v3-light-time-ticker" class="v3-ticker">Delay: 1h 39m 48s -&gt; target seen as at MJD 61359.931</div>
+      <div class="v3-badges">
+        <span id="v3-res-gain" class="v3-badge">Resolution Gain: x4.44</span>
+        <span id="v3-snr-gain" class="v3-badge">Recommended: 8.0 AU (Optimized for SNR x)</span>
+      </div>
+      <div id="v3-tca-readout" class="v3-subnote">Time to Closest Approach: 1000.0 days</div>
+    </div>
+
+    <div id="v3-panel-interstellar" class="v3-subpanel" hidden>
+      <h4>Mission 6: Interstellar Object Hunter</h4>
+      <label for="v3-vinf-slider">Excess Velocity (v_inf): <strong id="v3-vinf-val">26.5 km/s</strong></label>
+      <input id="v3-vinf-slider" type="range" min="0" max="80" step="0.5" value="26.5" aria-label="Interstellar Excess Velocity" />
+      <div id="v3-iso-readout" class="v3-ticker">e = 1.1800 | Interstellar Origin Prob: 92.0% (Hyperbolic)</div>
+    </div>
+
+    <div id="v3-panel-ocean" class="v3-subpanel" hidden>
+      <h4>Mission 7: Icy Ocean World Spectroscopist</h4>
+      <label for="ice-class-selector">Ice / Subsurface Ocean Profile</label>
+      <select id="ice-class-selector" aria-label="Ice Class Selector">
+        <option value="H2O_Surface">H2O Surface Ice</option>
+        <option value="CH4_Deep">CH4 Clathrate Deep</option>
+        <option value="CO2_Cap">CO2 Ice Cap</option>
+        <option value="Ocean">H2O Ocean Surface</option>
+      </select>
+      <div id="v3-ocean-readout" class="v3-ticker">Detected: H2O Ocean Surface (93.4% conf)</div>
+    </div>
+
+    <div id="v3-panel-multi" class="v3-subpanel" hidden>
+      <h4>Mission 8: Multi-Survey Consensus</h4>
+      <div id="v3-multi-readout" class="v3-ticker">SPHEREx 78% -&gt; Full Multi-Survey Consensus: 97%</div>
+      <div id="v3-multi-detail" class="v3-subnote">ZTF Optical: Match (g=19.4) | TESS: 0.31 d | NEOWISE: 0.62 mag</div>
+    </div>
+
+    <div id="active-learning-dashboard" class="v3-subpanel">
+      <h4>Blink Quest Active Learning</h4>
+      <p>Model confidence: <span id="model-confidence">72%</span> (Projected 90% at ~150 votes)</p>
+      <p>Human votes: <span id="vote-count">45</span></p>
+      <progress id="accuracy-progress" value="72" max="100" aria-label="Model Confidence"></progress>
+      <button type="button" class="btn-secondary-action" onclick="requestNextReview()">Show Next Uncertainty Candidate</button>
+    </div>
+  </aside>
+
+  <script src="globe3d.js?v=3.5"></script>
+  <script src="app.js?v=3.5"></script>
 </body>
 </html>

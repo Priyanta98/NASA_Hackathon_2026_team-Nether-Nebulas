@@ -356,3 +356,25 @@ RECOMMENDATIONS
             "- Inspect motion-corrected Band 4 (3.0–3.3 μm) H2O/CH4 absorption depth to confirm icy surface composition.",
             "- Submit exported 80-column MPC / IVOA VOTable packets for independent astrometric recovery.",
         ]
+
+# --- v3 Mission 5 & 7 Report Exporters ---
+def _rg_export_deep_dive_packet(self, candidate_id: str, telemetry: dict, out_dir: str = "reports/docs"):
+    import json as _json
+    from pathlib import Path as _Path
+    p = _Path(out_dir)
+    p.mkdir(parents=True, exist_ok=True)
+    out = p / f"{candidate_id}_deep_dive_packet.json"
+    out.write_text(_json.dumps({"candidate_id": candidate_id, "telemetry": telemetry}, indent=2), encoding="utf-8")
+    return str(out)
+
+def _rg_export_ice_class_spectrum(self, candidate_id: str, spectrum: dict, classification: dict, out_dir: str = "reports/data"):
+    import json as _json
+    from pathlib import Path as _Path
+    p = _Path(out_dir)
+    p.mkdir(parents=True, exist_ok=True)
+    out = p / f"{candidate_id}_ice_spectrum.json"
+    out.write_text(_json.dumps({"candidate_id": candidate_id, "classification": classification, "spectrum": spectrum}, indent=2), encoding="utf-8")
+    return str(out)
+
+ReportGenerator.export_deep_dive_packet = _rg_export_deep_dive_packet
+ReportGenerator.export_ice_class_spectrum = _rg_export_ice_class_spectrum

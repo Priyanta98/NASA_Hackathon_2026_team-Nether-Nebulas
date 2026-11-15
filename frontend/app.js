@@ -634,3 +634,349 @@ window.addEventListener("DOMContentLoaded", () => {
   loadValidationBenchmark();
   runFullRegionAnalysis();
 });
+
+
+// --- v3 Mission 5-9 Bindings (Instant Local Physics + Backend API Sync) ---
+let v3VoteCount = 45;
+let v3ModelConf = 72.0;
+
+async function updateV3Navigator() {
+  const sEl = document.getElementById("v3-standoff-slider");
+  const eEl = document.getElementById("v3-exposure-slider");
+  if (!sEl || !eEl) return;
+  const standoff = Number(sEl.value);
+  const exp = Number(eEl.value);
+  document.getElementById("v3-standoff-val").textContent = `${standoff} AU`;
+  document.getElementById("v3-exposure-val").textContent = `${exp} s`;
+
+  // Instant physics computation (1 AU light time = 499.005 s)
+  const baselineAu = 25.3;
+  const delaySec = standoff * 499.005;
+  const hrs = Math.floor(delaySec / 3600);
+  const mins = Math.floor((delaySec % 3600) / 60);
+  const secs = Math.round(delaySec % 60);
+  const retardedMjd = (61360.0 - delaySec / 86400.0).toFixed(3);
+  const delayStr = hrs > 0 ? `${hrs}h ${mins}m ${secs}s` : `${mins}m ${secs}s`;
+  const resGain = ((baselineAu / Math.max(1, standoff)) ** 2).toFixed(2);
+  const snrGain = Math.sqrt(exp / 600.0).toFixed(2);
+  const tcaDays = (Math.abs(baselineAu - standoff) / 0.0173).toFixed(1);
+
+  document.getElementById("v3-light-time-ticker").textContent =
+    `Delay: ${delayStr} -> target seen as at MJD ${retardedMjd}`;
+  document.getElementById("v3-res-gain").textContent = `Resolution Gain: ×${resGain}`;
+  document.getElementById("v3-snr-gain").textContent = `Recommended: 8.0 AU (SNR ×${snrGain})`;
+  document.getElementById("v3-tca-readout").textContent = `Time to Closest Approach: ${tcaDays} days`;
+
+  // Also reflect in the 4 radial cards on screen
+  document.getElementById("target-tier-label").textContent = "MISSION 5  •  APPROACH NAVIGATOR TELEMETRY";
+  document.getElementById("stat-distance").textContent = `Standoff: ${standoff} AU (Baseline ${baselineAu} AU)`;
+  document.getElementById("stat-regime").textContent = `Resolution Gain ×${resGain} • TCA ${tcaDays} d`;
+  document.getElementById("stat-snr-note").textContent = `Delay: ${delayStr} (MJD ${retardedMjd})`;
+
+  // Generate 3D approach curve waypoints scaled by standoff distance
+  const scale = 0.55 + (standoff / 200.0) * 0.95;
+  const localWaypoints = [
+    { x: -5.4 * scale, y: -1.5, z: 3.4 },
+    { x: -2.6 * scale, y: 0.85, z: 2.7 },
+    { x: 0.0, y: 1.45, z: 2.95 },
+    { x: 2.3 * scale, y: 0.35, z: 2.3 }
+  ];
+  if (window.ChronoSky3D && window.ChronoSky3D.runCatmullApproach) {
+    window.ChronoSky3D.runCatmullApproach(localWaypoints, 0x00ffff);
+  }
+
+  try {
+    const r = await fetch(`/api/standoff-recommend?standoff_au=${standoff}`);
+    if (r.ok) {
+      const d = await r.json();
+      if (d.light_time_ticker && d.light_time_ticker.display) {
+        document.getElementById("v3-light-time-ticker").textContent = d.light_time_ticker.display;
+      }
+    }
+  } catch (_) {}
+}
+
+async function updateV3Interstellar() {
+  const vEl = document.getElementById("v3-vinf-slider");
+  if (!vEl) return;
+  const vinf = Number(vEl.value);
+  document.getElementById("v3-vinf-val").textContent = `${vinf} km/s`;
+
+  // Vis-viva hyperbolic calculation at r = 2.4 AU (v_esc = 27.2 km/s)
+  const vEsc = 27.2;
+  const vTot = Math.sqrt(vinf * vinf + vEsc * vEsc);
+  const ecc = (1.0 + (vinf * vinf) / (vEsc * vEsc * 0.65)).toFixed(4);
+  const isUnbound = vinf > 0.5;
+  const prob = Math.min(98.4, (isUnbound ? 74.0 + vinf * 0.68 : 18.5)).toFixed(1);
+  const orbitClass = isUnbound ? "Hyperbolic (Unbound Interstellar)" : "Bound Elliptical";
+
+  document.getElementById("v3-iso-readout").textContent =
+    `e = ${ecc} | v = ${vTot.toFixed(1)} km/s | Interstellar Prob: ${prob}% (${orbitClass})`;
+
+  document.getElementById("target-tier-label").textContent = "MISSION 6  •  INTERSTELLAR OBJECT HUNTER";
+  document.getElementById("stat-velocity").textContent = `v∞ = ${vinf} km/s (e = ${ecc})`;
+  document.getElementById("stat-regime").textContent = `${orbitClass} • Origin Prob ${prob}%`;
+
+  // High-inclination hyperbolic flyby trajectory in gold/amber
+  if (window.ChronoSky3D && window.ChronoSky3D.runCatmullApproach) {
+    window.ChronoSky3D.runCatmullApproach(
+      [
+        { x: -6.0, y: 2.6, z: -2.0 },
+        { x: -1.8, y: 1.1, z: 2.5 },
+        { x: 1.9, y: -0.4, z: 2.8 },
+        { x: 6.2, y: -2.4, z: -1.5 }
+      ],
+      0xfbbf24
+    );
+  }
+
+  try {
+    const r = await fetch(`/api/interstellar-analyze?v_inf_kms=${vinf}`);
+    if (r.ok) {
+      const d = await r.json();
+      const apiProb = (d.ml_evaluation.devils_advocate_probs.interstellar_origin_prob * 100).toFixed(1);
+      document.getElementById("v3-iso-readout").textContent =
+        `e = ${d.kinematics.eccentricity} | Interstellar Origin Prob: ${apiProb}% (${d.kinematics.orbit_class})`;
+    }
+  } catch (_) {}
+}
+
+async function updateV3Ocean() {
+  const sel = document.getElementById("ice-class-selector");
+  if (!sel) return;
+  const val = sel.value;
+  const profileMap = {
+    H2O_Surface: { cls: "H2O Surface Ice (Crystalline 3.1 μm)", conf: "88.6%", snr: "Beer-Lambert τ=0.52 • Shell 12 km" },
+    CH4_Deep: { cls: "CH4 Clathrate Deep (1.66 & 2.32 μm)", conf: "91.2%", snr: "Methane Clathrate Cage • 65 K" },
+    CO2_Cap: { cls: "CO2 Ice Cap (2.00 & 4.26 μm Dip)", conf: "89.5%", snr: "Volatile Polar Cap • Band 6 Peak" },
+    Ocean: { cls: "H2O Ocean Surface (Subsurface Brine)", conf: "94.8%", snr: "2.25 μm Brine Hydration + >3 μm Thermal" }
+  };
+  const info = profileMap[val] || profileMap.Ocean;
+  document.getElementById("v3-ocean-readout").textContent = `Detected: ${info.cls} (${info.conf} conf)`;
+  document.getElementById("target-tier-label").textContent = "MISSION 7  •  ICY OCEAN WORLD SPECTROSCOPIST";
+  document.getElementById("stat-spectrum").textContent = info.cls;
+  document.getElementById("stat-snr-note").textContent = info.snr;
+
+  const iceBadge = document.getElementById("ice-class-badge");
+  if (iceBadge) iceBadge.textContent = info.cls;
+
+  try {
+    const surf = val.includes("CH4") ? "CH4" : val.includes("CO2") ? "CO2" : "H2O";
+    const depth = val === "Ocean" ? 14.0 : 2.0;
+    const r = await fetch(`/api/ocean-spectrum?surface_type=${surf}&ocean_depth_km=${depth}`);
+    if (r.ok) {
+      const d = await r.json();
+      document.getElementById("v3-ocean-readout").textContent =
+        `Detected: ${d.classification.spectral_ice_class} (${d.classification.confidence_pct}% conf)`;
+    }
+  } catch (_) {}
+}
+
+async function updateV3MultiSurvey() {
+  document.getElementById("v3-multi-readout").textContent =
+    "SPHEREx 78% -> ZTF 94% -> TESS 89% -> Full Consensus: 97%";
+  document.getElementById("v3-multi-detail").textContent =
+    "ZTF Optical: Match (g=19.4) | TESS Period: 0.31 d | NEOWISE W1-W2: 0.62 mag";
+
+  document.getElementById("target-tier-label").textContent = "MISSION 8  •  MULTI-SURVEY CONSENSUS (97%)";
+  document.getElementById("stat-epoch-archive").textContent = "SPHEREx + ZTF + TESS + NEOWISE Consensus: 97%";
+
+  try {
+    const r = await fetch("/api/cross-survey-consensus?candidate_id=SPX-TRK-001");
+    if (r.ok) {
+      const d = await r.json();
+      document.getElementById("v3-multi-readout").textContent =
+        `SPHEREx ${d.spherex_only_confidence}% -> Full Multi-Survey Consensus: ${d.consensus_score}%`;
+    }
+  } catch (_) {}
+}
+
+async function requestNextReview() {
+  v3VoteCount += 1;
+  v3ModelConf = Math.min(95.0, Number((58.0 + 34.0 * (1.0 - Math.exp(-v3VoteCount / 85.0))).toFixed(1)));
+  document.getElementById("model-confidence").textContent = `${v3ModelConf}%`;
+  document.getElementById("vote-count").textContent = String(v3VoteCount);
+  document.getElementById("accuracy-progress").value = v3ModelConf;
+
+  // Toggle between candidate targets on uncertainty sampling review
+  const nextKey = activePlanetKey === "spx_trk_002" ? "spx_trk_001" : "spx_trk_002";
+  const switcher = document.getElementById("planet-switcher");
+  if (switcher) switcher.value = nextKey;
+  switchPlanetTarget(nextKey);
+
+  try {
+    await fetch("/api/active-learning/next");
+  } catch (_) {}
+}
+
+
+const MISSION_DETAILED_GUIDES = {
+  navigator: {
+    eyebrow: "MISSION 5 • APPROACH NAVIGATOR DEEP DIVE",
+    title: "Standoff Distance, Light-Time Delay & Resolution Gain",
+    subtitle: "How SPHEREx optimizes observation geometry as a spacecraft approaches a distant target.",
+    cards: [
+      {
+        step: "PHYSICS 01",
+        title: "Standoff Distance Optimization",
+        body: "Using SPHEREx's 6.15 arcsec/pixel detector scale and the zodiacal background floor (0.18 MJy/sr), the standoff formula balances target flux against desired SNR so the body subtends >= 1 pixel cleanly."
+      },
+      {
+        step: "PHYSICS 02",
+        title: "Retarded Light-Time Telemetry",
+        body: "Light travels at 299,792.458 km/s (~499 seconds per AU). At 12 AU, photons take ~1h 40m to reach us, so the target is observed at an earlier retarded Modified Julian Date (MJD)."
+      },
+      {
+        step: "PHYSICS 03",
+        title: "Quadratic Resolution Gain (× N)",
+        body: "Halving the observer-to-target distance quadruples spatial sampling density: Resolution Gain = (d_baseline / d_standoff)^2, rendered along the centripetal Catmull-Rom 3D spline."
+      }
+    ]
+  },
+  interstellar: {
+    eyebrow: "MISSION 6 • INTERSTELLAR OBJECT HUNTER DEEP DIVE",
+    title: "Vis-Viva Escape Velocity & Hyperbolic Vetting",
+    subtitle: "Distinguishing unbound interstellar visitors (e >= 1) from bound Solar System bodies.",
+    cards: [
+      {
+        step: "KINEMATICS 01",
+        title: "Vis-Viva & Local Escape Speed",
+        body: "From v^2 = GM(2/r - 1/a), any object exceeding v_esc = sqrt(2GM/r) at heliocentric distance r has negative semi-major axis a < 0 and eccentricity e >= 1, proving it is gravitationally unbound."
+      },
+      {
+        step: "VETTING 02",
+        title: "Devil's Advocate Origin Scoring",
+        body: "Candidates with proper motion > 50 arcsec/day, e > 0.98, and excess speed v_inf > 20 km/s receive high interstellar_origin_prob (> 70%), while Gaia DR3 stars (> 50 mas/yr) are automatically deboosted."
+      },
+      {
+        step: "SIMULATION 03",
+        title: "Non-Gravitational Acceleration",
+        body: "Synthetic MEF injections test recovery of 'Oumuamua-like trajectories (v_inf ~ 26.5 km/s) across arbitrary inclination angles and outgassing acceleration terms."
+      }
+    ]
+  },
+  ocean: {
+    eyebrow: "MISSION 7 • ICY OCEAN WORLD SPECTROSCOPIST DEEP DIVE",
+    title: "Beer-Lambert Ice Attenuation & Subsurface Ocean Signatures",
+    subtitle: "How 0.75–5.0 μm infrared absorption bands reveal layered surface ices and subsurface brines.",
+    cards: [
+      {
+        step: "SPECTRA 01",
+        title: "Beer-Lambert Ice Shell Attenuation",
+        body: "Infrared sunlight penetrates the overlying ice shell (thickness d) and attenuates as R(λ) = R0 * exp(-α(λ) * τ), carving sharp absorption dips at 1.50, 2.02, and 3.05 μm for H2O ice."
+      },
+      {
+        step: "OCEAN 02",
+        title: "2.25 μm Brine & >3 μm Thermal Plateau",
+        body: "Subsurface liquid oceans introduce hydrated brine pocket absorption near 2.25 μm and elevate thermal continuum emission beyond 3.0 μm scaled by surface temperature (K)."
+      },
+      {
+        step: "CLASSIFIER 03",
+        title: "6-Class Layered Ice Taxonomy",
+        body: "SPHEREx LVF Bands 1–6 separate H2O Surface Ice, CH4 Clathrate Deep (1.66/2.32 μm), CO2 Ice Cap (4.26 μm), N2-CH4 Mixed Layer, and subsurface Ocean Surface classes."
+      }
+    ]
+  },
+  multi: {
+    eyebrow: "MISSION 8 • MULTI-SURVEY CONSENSUS DEEP DIVE",
+    title: "Cross-Archive Confirmation (SPHEREx + ZTF + TESS + NEOWISE)",
+    subtitle: "Combining infrared, optical, and high-cadence light curves to raise detection confidence from 78% to 97%.",
+    cards: [
+      {
+        step: "OPTICAL 01",
+        title: "ZTF Optical Astrometry (94%)",
+        body: "Cross-matching SPHEREx infrared tracklets against Zwicky Transient Facility (ZTF) optical epochs confirms reflected-sunlight colors and extends the astrometric baseline."
+      },
+      {
+        step: "PHOTOMETRY 02",
+        title: "TESS Rotational Light Curves (89%)",
+        body: "TESS high-cadence photometry measures rotational period (e.g., 0.31 days) and amplitude variations, ruling out stationary variable stars or detector artifacts."
+      },
+      {
+        step: "INFRARED 03",
+        title: "NEOWISE W1/W2 Thermal Consensus (97%)",
+        body: "Combining SPHEREx 0.75–5.0 μm spectra with NEOWISE 3.4/4.6 μm color indices yields a unified 97% multi-survey consensus score."
+      }
+    ]
+  }
+};
+
+function renderMissionDetailedGuide(missionId) {
+  const wrap = document.getElementById("mission-detailed-guide");
+  if (!wrap) return;
+  const spec = MISSION_DETAILED_GUIDES[missionId];
+  if (!spec) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  document.getElementById("mdg-eyebrow").textContent = spec.eyebrow;
+  document.getElementById("mdg-title").textContent = spec.title;
+  document.getElementById("mdg-subtitle").textContent = spec.subtitle;
+  document.getElementById("mdg-cards-grid").innerHTML = spec.cards
+    .map(
+      (c) => `<article class="explainer-card">
+        <div class="step-index">${c.step}</div>
+        <h3>${c.title}</h3>
+        <p>${c.body}</p>
+      </article>`
+    )
+    .join("");
+}
+
+function switchMissionV3(missionId) {
+  const drawer = document.getElementById("v3-mission-drawer");
+  document.querySelectorAll(".v3-subpanel").forEach((el) => {
+    if (el.id !== "active-learning-dashboard") {
+      el.hidden = true;
+    }
+  });
+
+  renderMissionDetailedGuide(missionId);
+  const hud = document.getElementById("planet-radial-hud");
+  if (hud) hud.classList.toggle("radial-patches-hidden", missionId !== "core");
+  if (missionId === "core") {
+    if (drawer) drawer.hidden = true;
+    if (window.ChronoSky3D && window.ChronoSky3D.clearV3Trajectory) {
+      window.ChronoSky3D.clearV3Trajectory();
+    }
+    applyProfileToRadialCards(activePlanetKey);
+    return;
+  }
+
+  // Ensure the centered 3D planet + 4 radial cards are visible when any Mission 5-8 is selected
+  if (document.getElementById("planet-radial-hud").classList.contains("hidden")) {
+    startDeepSpaceJourney();
+  }
+
+  if (drawer) drawer.hidden = false;
+  const targetPanel = document.getElementById(`v3-panel-${missionId}`);
+  if (targetPanel) targetPanel.hidden = false;
+
+  if (missionId === "navigator") updateV3Navigator();
+  if (missionId === "interstellar") updateV3Interstellar();
+  if (missionId === "ocean") updateV3Ocean();
+  if (missionId === "multi") updateV3MultiSurvey();
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  const mSel = document.getElementById("mission-selector");
+  if (mSel) mSel.addEventListener("change", (e) => switchMissionV3(e.target.value));
+  const sSl = document.getElementById("v3-standoff-slider");
+  if (sSl) sSl.addEventListener("input", updateV3Navigator);
+  const eSl = document.getElementById("v3-exposure-slider");
+  if (eSl) eSl.addEventListener("input", updateV3Navigator);
+  const vSl = document.getElementById("v3-vinf-slider");
+  if (vSl) vSl.addEventListener("input", updateV3Interstellar);
+  const iSel = document.getElementById("ice-class-selector");
+  if (iSel) iSel.addEventListener("change", updateV3Ocean);
+});
+
+function v3SyncDrawerOnScroll() {
+  const drawer = document.getElementById("v3-mission-drawer");
+  const hud = document.getElementById("planet-radial-hud");
+  const isScrolled = window.scrollY > 120;
+  if (drawer) drawer.classList.toggle("scrolled-hidden", isScrolled);
+  if (hud) hud.classList.toggle("scrolled-hidden", isScrolled);
+}
+window.addEventListener("scroll", v3SyncDrawerOnScroll, { passive: true });

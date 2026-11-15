@@ -243,3 +243,34 @@ class TrackletDatabase:
                     )
                 return self.upsert_tracklet(rec)
         return None
+
+# --- v3 Mission 6, 7 & 9 DB Extensions ---
+def _db_record_interstellar_candidate(self, candidate: dict):
+    enriched = dict(candidate)
+    enriched["mission_tag"] = "interstellar_hunter"
+    return self.upsert_tracklet(enriched)
+
+def _db_record_ocean_vote(self, candidate_id: str, ice_class: str, voter: str = "Spectroscopist"):
+    return self.record_blink_quest_vote(candidate_id, label=ice_class, voter=voter)
+
+def _db_select_next_blink_quest_candidate(self):
+    import math as _math
+    recs = self.get_all_tracklets() if hasattr(self, "get_all_tracklets") else []
+    best, best_h = None, -1.0
+    for r in recs:
+        votes = r.get("human_vetting_labels", [])
+        if not votes:
+            return r
+        counts = {}
+        for v in votes:
+            lbl = str(v.get("label", "unknown"))
+            counts[lbl] = counts.get(lbl, 0) + 1
+        tot = sum(counts.values())
+        h = -sum((c / tot) * _math.log2(c / tot) for c in counts.values() if c > 0)
+        if h > best_h:
+            best_h, best = h, r
+    return best
+
+TrackletDatabase.record_interstellar_candidate = _db_record_interstellar_candidate
+TrackletDatabase.record_ocean_vote = _db_record_ocean_vote
+TrackletDatabase.select_next_blink_quest_candidate = _db_select_next_blink_quest_candidate

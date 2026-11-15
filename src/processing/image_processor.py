@@ -294,3 +294,44 @@ class ImageProcessor:
             "snr_recovery_gain_pct": snr_gain_pct,
             "track_apertures": track_positions,
         }
+
+# --- v3 Mission 7 Layered Ice & Ocean World Spectroscopy ---
+def apply_layered_ice_absorption(wavelengths_um, surface_type: str = "H2O", ice_thickness_km: float = 5.0, ocean_depth_km: float = 10.0, temperature_K: float = 75.0):
+    import numpy as _np
+    wl = _np.asarray(wavelengths_um, dtype=_np.float64)
+    refl = _np.full_like(wl, 0.78)
+    tau = _np.clip(ice_thickness_km / 10.0, 0.1, 3.0)
+    st = surface_type.upper()
+    if st in ("H2O", "OCEAN", "H2O_SURFACE"):
+        alpha = 0.35 * _np.exp(-((wl - 1.50) / 0.09) ** 2) + 0.45 * _np.exp(-((wl - 2.02) / 0.11) ** 2) + 0.68 * _np.exp(-((wl - 3.05) / 0.18) ** 2)
+        refl *= _np.exp(-alpha * tau)
+        if ocean_depth_km > 0:
+            brine = 0.14 * (1.0 - _np.exp(-ocean_depth_km / 15.0))
+            refl *= 1.0 - brine * _np.exp(-((wl - 2.25) / 0.12) ** 2)
+    elif "CH4" in st:
+        alpha = 0.38 * _np.exp(-((wl - 1.66) / 0.08) ** 2) + 0.55 * _np.exp(-((wl - 2.32) / 0.12) ** 2) + 0.62 * _np.exp(-((wl - 3.32) / 0.14) ** 2)
+        refl *= _np.exp(-alpha * tau)
+    elif "CO2" in st:
+        alpha = 0.52 * _np.exp(-((wl - 2.00) / 0.06) ** 2) + 0.72 * _np.exp(-((wl - 4.26) / 0.10) ** 2)
+        refl *= _np.exp(-alpha * tau)
+    else:
+        alpha = 0.28 * _np.exp(-((wl - 2.15) / 0.09) ** 2) + 0.36 * _np.exp(-((wl - 3.30) / 0.15) ** 2)
+        refl *= _np.exp(-alpha * tau)
+    thermal = 0.12 * (temperature_K / 75.0) * _np.clip((wl - 3.0) / 2.0, 0.0, 1.0)
+    return _np.clip(refl + thermal, 0.02, 1.0)
+
+def reconstruct_ocean_world_spectrum(surface_type: str = "H2O", ocean_depth_km: float = 10.0, ice_thickness_km: float = 5.0, temperature_K: float = 75.0):
+    import numpy as _np
+    wl = _np.linspace(0.75, 5.00, 48)
+    flux = apply_layered_ice_absorption(wl, surface_type=surface_type, ice_thickness_km=ice_thickness_km, ocean_depth_km=ocean_depth_km, temperature_K=temperature_K)
+    return {
+        "surface_type": surface_type,
+        "ocean_depth_km": ocean_depth_km,
+        "ice_thickness_km": ice_thickness_km,
+        "temperature_K": temperature_K,
+        "wavelengths_um": [round(float(w), 3) for w in wl],
+        "flux_normalized": [round(float(f), 4) for f in flux],
+    }
+
+ImageProcessor.apply_layered_ice_absorption = staticmethod(apply_layered_ice_absorption)
+ImageProcessor.reconstruct_ocean_world_spectrum = staticmethod(reconstruct_ocean_world_spectrum)

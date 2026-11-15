@@ -390,3 +390,43 @@ class MovingObjectDetector:
             peaks.append((cy, cx, val))
         peaks.sort(key=lambda item: item[2], reverse=True)
         return peaks[:20]
+
+# --- v3 Mission 5 Standoff & Mission 6 Interstellar Escape Velocity ---
+def recommend_standoff_distance(target: dict) -> float:
+    import math as _math
+    el_deg = float(target.get("solar_elongation_deg", 90.0))
+    sin_el = max(0.2, abs(_math.sin(_math.radians(el_deg))))
+    flux_model = float(target.get("flux_model_mjy_sr", 3.6))
+    desired_snr = max(1.0, float(target.get("desired_snr", 10.0)))
+    zodi_floor = max(0.05, float(target.get("zodi_floor_mjy_sr", 0.18)))
+    baseline = float(target.get("distance_au_median", 25.3))
+    raw_d = (1.0 / sin_el) * (flux_model / (desired_snr * zodi_floor))
+    return round(max(1.0, min(200.0, min(baseline * 0.65, raw_d * 4.0))), 2)
+
+def estimate_interstellar_escape_velocity(tracklet: dict) -> dict:
+    import math as _math
+    AU_KM = 149597870.7
+    GM = 2.959122082855911e-4
+    r_au = max(0.2, float(tracklet.get("distance_au_median", 2.4)))
+    v_esc_kms = (_math.sqrt((2.0 * GM) / r_au) * AU_KM) / 86400.0
+    v_inf_in = float(tracklet.get("v_inf_kms", 0.0) or 0.0)
+    if v_inf_in > 0.0:
+        v_kms = _math.sqrt(v_inf_in ** 2 + v_esc_kms ** 2)
+    else:
+        mu = float(tracklet.get("mu_total", tracklet.get("motion_angular_velocity", 58.0)))
+        v_kms = max((r_au * _math.radians(mu / 3600.0) * AU_KM) / 86400.0, 12.0)
+    ecc = float(tracklet["eccentricity"]) if "eccentricity" in tracklet else round(max(0.15, (v_kms / max(1.0, v_esc_kms)) ** 1.35), 4)
+    is_unbound = ecc >= 1.0 or v_kms >= v_esc_kms
+    v_inf_out = round(_math.sqrt(max(0.0, v_kms ** 2 - v_esc_kms ** 2)), 2) if is_unbound else 0.0
+    return {
+        "r_au": round(r_au, 2),
+        "v_kms": round(v_kms, 2),
+        "v_esc_kms": round(v_esc_kms, 2),
+        "v_inf_kms": v_inf_out,
+        "eccentricity": round(ecc, 4),
+        "is_unbound": is_unbound,
+        "orbit_class": "Hyperbolic (Unbound Interstellar)" if is_unbound else "Bound Elliptical",
+    }
+
+MovingObjectDetector.recommend_standoff_distance = staticmethod(recommend_standoff_distance)
+MovingObjectDetector.estimate_interstellar_escape_velocity = staticmethod(estimate_interstellar_escape_velocity)

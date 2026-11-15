@@ -1,23 +1,60 @@
 {
-  "observations": [
+  "scientific_disclaimer": "This application visualizes temporal changes, motion-corrected infrared spectrophotometry, and candidate moving objects across multi-epoch NASA/IPAC SPHEREx observations. It does not claim the discovery of Planet Nine nor imply that SPHEREx is dedicated to Planet Nine detection.",
+  "region": {
+    "ra": 304.6935,
+    "dec": 42.4437,
+    "radius_arcsec": 600.0,
+    "collection": "spherex_qr2"
+  },
+  "validation_summary": {
+    "known_object_recall_pct": 83.3,
+    "bright_sample_recall_pct": 100.0,
+    "50pct_completeness_mjy_sr": 9.4,
+    "90pct_completeness_mjy_sr": 13.8,
+    "null_test_far_per_sq_deg": 0.0018
+  },
+  "benchmark_candidates": [
     {
-      "obs_id": "SPX-BENCH-OBS-001",
-      "ra": 150.0,
-      "dec": 12.0,
-      "t_min": 60300.10,
-      "t_max": 60300.12,
-      "collection": "spherex_qr2",
-      "access_url": "https://irsa.ipac.caltech.edu/ibe/cutouts/spherex_bench_1.fits",
-      "cutout_url": "https://irsa.ipac.caltech.edu/ibe/cutouts/spherex_bench_1.fits?center=150.0,12.0&size=0.1",
-      "dataproduct_type": "image",
-      "s_fov": 0.5,
-      "s_resolution": 6.15,
-      "solar_elongation_deg": 90.0,
-      "instrument_name": "SPHEREx LVF",
-      "calib_level": 2,
-      "target_name": "Cached_Benchmark_Field",
-      "detector_band": 1,
-      "flux": 0.38
+      "candidate_id": "SPX-TRK-001",
+      "ra1": 304.6952,
+      "dec1": 42.4448,
+      "ra2": 304.7024,
+      "dec2": 42.4489,
+      "t_min1": 60850.0,
+      "t_min2": 60869.5,
+      "motion_angular_velocity": 2.46,
+      "motion_velocity_err": 0.14,
+      "distance_au_min": 58.2,
+      "distance_au_median": 65.4,
+      "distance_au_max": 74.6,
+      "dynamical_regime": "Scattered Disk / Detached Object Regime (50–100 AU)",
+      "ensemble_confidence_pct": 94.2,
+      "promotion_tier": 3,
+      "promotion_badge": "Tier 3: High-Priority Vetted Candidate",
+      "is_known_object": false,
+      "catalog_match_name": "Uncataloged Moving Candidate",
+      "spectral_ice_class": "Strong H2O/CH4 Icy Outer-System Surface (3.1 μm dip = 48.2%)"
+    },
+    {
+      "candidate_id": "SPX-TRK-002",
+      "ra1": 304.6912,
+      "dec1": 42.4421,
+      "ra2": 304.6781,
+      "dec2": 42.4512,
+      "t_min1": 60850.0,
+      "t_min2": 60869.5,
+      "motion_angular_velocity": 5.66,
+      "motion_velocity_err": 0.18,
+      "distance_au_min": 16.2,
+      "distance_au_median": 18.4,
+      "distance_au_max": 21.1,
+      "dynamical_regime": "Centaur / Giant-Planet Crossing Regime (5–30 AU)",
+      "ensemble_confidence_pct": 96.8,
+      "promotion_tier": 2,
+      "promotion_badge": "Known Benchmark: (2060) Chiron [SkyBoT]",
+      "is_known_object": true,
+      "catalog_match_name": "(2060) Chiron [SkyBoT Verified]",
+      "spectral_ice_class": "Moderate Silicate/Ice Transition Body (3.1 μm dip = 22.0%)"
     }
   ]
 }

@@ -339,3 +339,28 @@ class FITSProcessor:
                 r2 = (xx - px) ** 2 + (yy - py) ** 2
                 out += float(peak_flux_mjy_sr) * np.exp(-r2 / (2.0 * sigma_psf**2))
         return out
+
+# --- v3 Mission 6 & 7 Synthetic MEF Injections ---
+def inject_synthetic_interstellar(trajectory: str = "hyperbolic", v_inf_kms: float = 26.5, inclination_deg: float = 0.0, eps_accel: float = 0.0):
+    import numpy as _np
+    yy, xx = _np.mgrid[0:64, 0:64]
+    cx = 32.0 + inclination_deg * 0.05
+    img = 0.22 + 4.2 * _np.exp(-((xx - cx) ** 2 + (yy - 32.0) ** 2) / (2.0 * 1.35 ** 2))
+    ecc = 1.18 if trajectory == "hyperbolic" else (1.0 if trajectory == "parabolic" else 0.82)
+    return {
+        "PRIMARY": {"TRAJECTORY_TYPE": trajectory, "V_INF_KMS": v_inf_kms, "ECCENTRICITY": ecc, "NON_GRAV_ACCEL": eps_accel, "MU_ARCSEC_DAY": round(52.0 + v_inf_kms * 0.9, 2)},
+        "IMAGE": img.astype(_np.float32),
+    }
+
+def inject_synthetic_ocean_world(surface_type: str = "H2O", ocean_depth_km: float = 10.0, ice_thickness_km: float = 5.0, temperature_K: float = 75.0):
+    import numpy as _np
+    yy, xx = _np.mgrid[0:64, 0:64]
+    boost = 1.0 + (ocean_depth_km / max(1.0, ice_thickness_km)) * 0.06
+    img = 0.22 + (3.4 * boost) * _np.exp(-((xx - 32.0) ** 2 + (yy - 32.0) ** 2) / (2.0 * 1.4 ** 2))
+    return {
+        "PRIMARY": {"SURFACE_TYPE": surface_type, "OCEAN_DEPTH_KM": ocean_depth_km, "ICE_THICKNESS_KM": ice_thickness_km, "SURFACE_TEMP_K": temperature_K},
+        "IMAGE": img.astype(_np.float32),
+    }
+
+FITSProcessor.inject_synthetic_interstellar = staticmethod(inject_synthetic_interstellar)
+FITSProcessor.inject_synthetic_ocean_world = staticmethod(inject_synthetic_ocean_world)

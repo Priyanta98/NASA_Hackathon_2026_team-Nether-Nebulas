@@ -482,7 +482,99 @@ window.ChronoSky3D = (function () {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
+
+
+  // --- v3 Mission 5 & 6 CatmullRomCurve3 Approach & Hyperbolic Trajectory ---
+  let v3ApproachLine = null;
+  let v3WaypointsSpheres = [];
+  let v3Spacecraft = null;
+  let v3Curve = null;
+  let v3Progress = 0;
+  let v3AnimId = null;
+
+  function clearV3Trajectory() {
+    if (v3AnimId) {
+      cancelAnimationFrame(v3AnimId);
+      v3AnimId = null;
+    }
+    if (v3ApproachLine) {
+      scene.remove(v3ApproachLine);
+      v3ApproachLine.geometry.dispose();
+      v3ApproachLine = null;
+    }
+    v3WaypointsSpheres.forEach((m) => scene.remove(m));
+    v3WaypointsSpheres = [];
+    if (v3Spacecraft) {
+      v3Spacecraft.visible = false;
+    }
+  }
+
+  function runCatmullApproach(waypoints, colorHex) {
+    clearV3Trajectory();
+    solarOrbitGroup.visible = true;
+
+    const hex = colorHex || 0x00ffff;
+    if (!v3Spacecraft) {
+      const scGroup = new THREE.Group();
+      const core = new THREE.Mesh(
+        new THREE.SphereGeometry(0.14, 20, 20),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+      );
+      const halo = new THREE.Mesh(
+        new THREE.SphereGeometry(0.26, 20, 20),
+        new THREE.MeshBasicMaterial({ color: hex, transparent: true, opacity: 0.55 })
+      );
+      scGroup.add(core);
+      scGroup.add(halo);
+      v3Spacecraft = scGroup;
+      scene.add(v3Spacecraft);
+    }
+    v3Spacecraft.visible = true;
+
+    const pts = (waypoints || [
+      { x: -5.2, y: -1.6, z: 3.2 },
+      { x: -2.8, y: 0.9, z: 2.6 },
+      { x: 0.0, y: 1.5, z: 2.9 },
+      { x: 2.5, y: 0.4, z: 2.4 }
+    ]).map((p) => new THREE.Vector3(p.x, p.y, p.z));
+
+    v3Curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
+    const curvePts = v3Curve.getPoints(90);
+    const geom = new THREE.BufferGeometry().setFromPoints(curvePts);
+    v3ApproachLine = new THREE.Line(
+      geom,
+      new THREE.LineBasicMaterial({ color: hex, linewidth: 3 })
+    );
+    scene.add(v3ApproachLine);
+
+    // Add waypoint beacons along the 3D trajectory
+    pts.forEach((pt) => {
+      const wpMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.07, 12, 12),
+        new THREE.MeshBasicMaterial({ color: hex })
+      );
+      wpMesh.position.copy(pt);
+      scene.add(wpMesh);
+      v3WaypointsSpheres.push(wpMesh);
+    });
+
+    v3Progress = 0;
+    function stepApproach() {
+      if (!v3Curve || !v3Spacecraft || !v3Spacecraft.visible) return;
+      v3Progress += 0.0045;
+      if (v3Progress > 1) v3Progress = 0;
+      const s = v3Progress * v3Progress * (3 - 2 * v3Progress);
+      const pos = v3Curve.getPointAt(s);
+      v3Spacecraft.position.copy(pos);
+      v3Spacecraft.lookAt(planetGroup.position);
+      v3AnimId = requestAnimationFrame(stepApproach);
+    }
+    v3AnimId = requestAnimationFrame(stepApproach);
+  }
+
   return {
+    runCatmullApproach,
+    clearV3Trajectory,
     transitionToPlanet,
     triggerFastScrollSpin,
     rotateForTimeSlider

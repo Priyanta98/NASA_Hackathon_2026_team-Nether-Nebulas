@@ -238,3 +238,25 @@ class SPHERExHelpers:
         csv_path = out_dir / f"{filename}.csv"
         df.to_csv(csv_path, index=False)
         return str(csv_path)
+
+# --- v3 Mission 5 Light-Time Ticker Helper ---
+def format_light_time_stamp(distance_au: float, obs_mjd: float = 61360.0) -> dict:
+    delay_sec = (max(0.01, float(distance_au)) * 149597870.7) / 299792.458
+    hours = int(delay_sec // 3600)
+    minutes = int((delay_sec % 3600) // 60)
+    seconds = int(round(delay_sec % 60))
+    if seconds == 60:
+        seconds = 0
+        minutes += 1
+    if minutes == 60:
+        minutes = 0
+        hours += 1
+    retarded_mjd = obs_mjd - (delay_sec / 86400.0)
+    hhmmss = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    short_delay = f"{minutes}m {seconds}s" if hours == 0 else f"{hours}h {minutes}m {seconds}s"
+    return {
+        "delay_seconds": round(delay_sec, 2),
+        "hhmmss": hhmmss,
+        "retarded_mjd": round(retarded_mjd, 4),
+        "display": f"Delay: {short_delay} -> target seen as at MJD {retarded_mjd:.3f}",
+    }

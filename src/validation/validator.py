@@ -167,3 +167,21 @@ class PipelineValidator:
             "completeness_heatmap": self.run_synthetic_completeness_grid(epochs[:2]),
             "null_test_results": self.run_time_scrambled_null_test(epochs),
         }
+
+# --- v3 Mission 6 & 7 Recovery Gates ---
+def _pv_run_interstellar_mover_recovery(self, v_inf_kms: float = 26.5):
+    from src.detection.moving_object import estimate_interstellar_escape_velocity
+    from src.detection.ml_detector import compute_interstellar_origin_prob
+    kin = estimate_interstellar_escape_velocity({"distance_au_median": 2.4, "mu_total": 58.0, "v_inf_kms": v_inf_kms})
+    prob = compute_interstellar_origin_prob({"mu_total": 58.0, "eccentricity": kin["eccentricity"], "v_inf_kms": v_inf_kms}, gaia_pm_mas_yr=1.2)
+    return {"test": "interstellar_mover_recovery", "is_unbound": kin["is_unbound"], "interstellar_origin_prob": prob, "passed": bool(kin["is_unbound"] and prob > 0.7)}
+
+def _pv_run_ocean_ice_recovery(self, surface_type: str = "H2O", ocean_depth_km: float = 12.0):
+    from src.processing.image_processor import reconstruct_ocean_world_spectrum
+    from src.detection.ml_detector import compute_ice_class_deep
+    spec = reconstruct_ocean_world_spectrum(surface_type=surface_type, ocean_depth_km=ocean_depth_km, ice_thickness_km=4.5)
+    cls = compute_ice_class_deep(spec)
+    return {"test": "ocean_ice_recovery", "spectral_ice_class": cls["spectral_ice_class"], "passed": "Ocean" in cls["spectral_ice_class"]}
+
+PipelineValidator.run_interstellar_mover_recovery = _pv_run_interstellar_mover_recovery
+PipelineValidator.run_ocean_ice_recovery = _pv_run_ocean_ice_recovery

@@ -135,3 +135,19 @@ class Settings:
 
 
 Settings.ensure_directories()
+
+# --- v3 Mission-Extended Additions (Preserving all preexisting Settings) ---
+DEEP_DIVE_MAX_DIST_AU = 200.0
+APPROACH_STANDOFF_DEFAULT_AU = 12.0
+
+MISSION_REGISTRY = {
+    "core": {"id": "core", "name": "Core 3-Hero Demo (Shipped)", "priority": 1},
+    "navigator": {"id": "navigator", "name": "Mission 5: Approach Navigator", "priority": 2},
+    "interstellar": {"id": "interstellar", "name": "Mission 6: Interstellar Object Hunter", "priority": 3},
+    "ocean": {"id": "ocean", "name": "Mission 7: Icy Ocean World Spectroscopist", "priority": 4},
+    "multi": {"id": "multi", "name": "Mission 8: Multi-Survey Consensus", "priority": 5},
+}
+
+Settings.MISSION_REGISTRY = MISSION_REGISTRY
+Settings.DEEP_DIVE_MAX_DIST_AU = DEEP_DIVE_MAX_DIST_AU
+Settings.APPROACH_STANDOFF_DEFAULT_AU = APPROACH_STANDOFF_DEFAULT_AU
