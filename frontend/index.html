@@ -8,11 +8,33 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=3.8" />
+  <link rel="stylesheet" href="style.css?v=4.6" />
   <!-- Three.js r128 + OrbitControls + Plotly 3D -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    .radial-top-header {
+      top: 6px !important;
+      padding: 0.42rem 1.25rem !important;
+      border-radius: 12px !important;
+      background: rgba(3, 6, 15, 0.82) !important;
+      backdrop-filter: blur(10px) !important;
+      border: 1px solid rgba(56, 189, 248, 0.35) !important;
+      max-width: min(920px, 88vw) !important;
+      z-index: 30 !important;
+    }
+    :root[data-theme="light"] .radial-top-header {
+      background: rgba(255, 255, 255, 0.9) !important;
+    }
+    .radial-main-title {
+      font-size: clamp(0.95rem, 1.45vw, 1.32rem) !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      max-width: 82vw !important;
+    }
+  </style>
 </head>
 <body>
 
@@ -41,6 +63,11 @@
         <option value="mars">Mars (1.52 AU)</option>
         <option value="jupiter">Jupiter (5.20 AU)</option>
         <option value="neptune">Neptune (30.1 AU)</option>
+        <option value="barnards_star">Barnard's Star (High-PM Red Dwarf)</option>
+        <option value="epsilon_indi_b">Epsilon Indi B (Binary Brown Dwarf)</option>
+        <option value="wise_0855">WISE 0855 (Fast-Moving Brown Dwarf)</option>
+        <option value="rw_aurigae">RW Aurigae (T Tauri Variable Star)</option>
+        <option value="r_draconis">R Draconis (Mira Variable Star)</option>
       </select>
       <button id="theme-toggle-btn" class="theme-toggle" onclick="toggleColorTheme()">
         <span id="theme-label">Light Mode</span>
@@ -98,23 +125,6 @@
             SPX-TRK-002 (Centaur / Giant-Planet Crossing Regime (5–30 AU))
           </h2>
         </div>
-
-        <!-- SVG Cyan Pointer Arrows Connecting the 4 Cards to the Centered Planet -->
-        <svg class="radial-arrows-svg" viewBox="0 0 1440 820" preserveAspectRatio="none">
-          <defs>
-            <marker id="cyan-arrowhead" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto">
-              <polygon points="0 0, 9 3.5, 0 7" fill="#38bdf8" />
-            </marker>
-          </defs>
-          <!-- Top-Left Card -> Planet Upper-Left Limb -->
-          <line class="callout-line line-1" x1="330" y1="295" x2="548" y2="375" stroke="#38bdf8" stroke-width="2.2" marker-end="url(#cyan-arrowhead)" />
-          <!-- Bottom-Left Card -> Planet Lower-Left Limb -->
-          <line class="callout-line line-2" x1="330" y1="595" x2="548" y2="520" stroke="#38bdf8" stroke-width="2.2" marker-end="url(#cyan-arrowhead)" />
-          <!-- Top-Right Card -> Planet Upper-Right Limb -->
-          <line class="callout-line line-3" x1="1110" y1="295" x2="892" y2="375" stroke="#38bdf8" stroke-width="2.2" marker-end="url(#cyan-arrowhead)" />
-          <!-- Bottom-Right Card -> Planet Lower-Right Limb -->
-          <line class="callout-line line-4" x1="1110" y1="595" x2="892" y2="520" stroke="#38bdf8" stroke-width="2.2" marker-end="url(#cyan-arrowhead)" />
-        </svg>
 
         <!-- 1. Top-Left Callout Box: Sky Coordinates (J2000) -->
         <div class="radial-card card-top-left" style="--delay: 0.15s">
@@ -406,8 +416,8 @@
   </div>
 
   
-  <!-- v3 Mission Registry Selector & Persistent Guardrail -->
-  <select id="mission-selector" aria-label="Mission Registry Selector" onchange="switchMissionV3(this.value)" style="position:fixed;top:70px;right:20px;z-index:1001;background:rgba(0,0,30,0.85);border:1px solid #00ffff;color:#fff;padding:8px 16px;border-radius:20px;font-family:'Segoe UI',sans-serif;font-size:13px;">
+  <!-- v3 Mission Registry Selector -->
+  <select id="mission-selector" aria-label="Mission Registry Selector" onchange="switchMissionV3(this.value)" style="position:fixed;top:78px;right:24px;z-index:45;background:rgba(9,15,28,0.88);border:1px solid #38bdf8;color:#f8fafc;padding:8px 16px;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer;">
     <option value="core">Core 3-Hero Demo (Shipped)</option>
     <option value="navigator">Mission 5: Approach Navigator</option>
     <option value="interstellar">Mission 6: Interstellar Object Hunter</option>
@@ -415,61 +425,102 @@
     <option value="multi">Mission 8: Multi-Survey Consensus</option>
   </select>
 
-  <div id="v3-disclaimer-bar" class="v3-disclaimer-bar" role="note">
-    <strong>SCIENTIFIC GUARDRAIL:</strong> SPHEREx ChronoSky visualizes temporal changes, reconstructs motion-corrected 0.75-5.0 um spectra, quantifies detection completeness, and flags candidates for review. It does not claim Planet Nine discovery.
-  </div>
-
-  <!-- v3 Mission 5-9 Interactive Drawer (slides cleanly on demand without obstructing core HUD) -->
+  <!-- Minimalist Mission Controls (ONLY Sliders in Mission 5 & 6, Dropdown in Mission 7 + Clickable Details Option) -->
   <aside id="v3-mission-drawer" class="v3-mission-drawer" hidden aria-label="Mission Controls">
+    <!-- Mission 5: Only Sliding Bars -->
     <div id="v3-panel-navigator" class="v3-subpanel" hidden>
-      <h4>Mission 5: Approach Navigator</h4>
-      <label for="v3-standoff-slider">Standoff Distance: <strong id="v3-standoff-val">12 AU</strong></label>
-      <input id="v3-standoff-slider" type="range" min="1" max="200" step="1" value="12" aria-label="Standoff Distance AU" />
-      <label for="v3-exposure-slider">Exposure Time: <strong id="v3-exposure-val">1800 s</strong></label>
-      <input id="v3-exposure-slider" type="range" min="100" max="7200" step="100" value="1800" aria-label="Exposure Time Seconds" />
-      <div id="v3-light-time-ticker" class="v3-ticker">Delay: 1h 39m 48s -&gt; target seen as at MJD 61359.931</div>
-      <div class="v3-badges">
-        <span id="v3-res-gain" class="v3-badge">Resolution Gain: x4.44</span>
-        <span id="v3-snr-gain" class="v3-badge">Recommended: 8.0 AU (Optimized for SNR x)</span>
+      <div class="v3-control-row">
+        <div class="v3-slider-item">
+          <label for="v3-standoff-slider">Standoff Distance: <strong id="v3-standoff-val">12 AU</strong></label>
+          <input id="v3-standoff-slider" type="range" min="1" max="200" step="1" value="12" aria-label="Standoff Distance AU" />
+        </div>
+        <div class="v3-slider-item">
+          <label for="v3-exposure-slider">Exposure Time: <strong id="v3-exposure-val">1800 s</strong></label>
+          <input id="v3-exposure-slider" type="range" min="100" max="7200" step="100" value="1800" aria-label="Exposure Time Seconds" />
+        </div>
       </div>
-      <div id="v3-tca-readout" class="v3-subnote">Time to Closest Approach: 1000.0 days</div>
     </div>
 
+    <!-- Mission 6: Only Sliding Bar -->
     <div id="v3-panel-interstellar" class="v3-subpanel" hidden>
-      <h4>Mission 6: Interstellar Object Hunter</h4>
-      <label for="v3-vinf-slider">Excess Velocity (v_inf): <strong id="v3-vinf-val">26.5 km/s</strong></label>
-      <input id="v3-vinf-slider" type="range" min="0" max="80" step="0.5" value="26.5" aria-label="Interstellar Excess Velocity" />
-      <div id="v3-iso-readout" class="v3-ticker">e = 1.1800 | Interstellar Origin Prob: 92.0% (Hyperbolic)</div>
+      <div class="v3-slider-item">
+        <label for="v3-vinf-slider">Excess Velocity (v∞): <strong id="v3-vinf-val">26.5 km/s</strong></label>
+        <input id="v3-vinf-slider" type="range" min="0" max="80" step="0.5" value="26.5" aria-label="Interstellar Excess Velocity" />
+      </div>
     </div>
 
+    <!-- Mission 7: Only Droppable Select Option -->
     <div id="v3-panel-ocean" class="v3-subpanel" hidden>
-      <h4>Mission 7: Icy Ocean World Spectroscopist</h4>
-      <label for="ice-class-selector">Ice / Subsurface Ocean Profile</label>
-      <select id="ice-class-selector" aria-label="Ice Class Selector">
-        <option value="H2O_Surface">H2O Surface Ice</option>
-        <option value="CH4_Deep">CH4 Clathrate Deep</option>
-        <option value="CO2_Cap">CO2 Ice Cap</option>
-        <option value="Ocean">H2O Ocean Surface</option>
-      </select>
-      <div id="v3-ocean-readout" class="v3-ticker">Detected: H2O Ocean Surface (93.4% conf)</div>
+      <div class="v3-slider-item">
+        <label for="ice-class-selector">Ice / Subsurface Ocean Profile</label>
+        <select id="ice-class-selector" class="clean-select" aria-label="Ice Class Selector">
+          <option value="H2O_Surface">H2O Surface Ice</option>
+          <option value="CH4_Deep">CH4 Clathrate Deep</option>
+          <option value="CO2_Cap">CO2 Ice Cap</option>
+          <option value="Ocean">H2O Ocean Surface</option>
+        </select>
+      </div>
     </div>
 
+    <!-- Mission 8: Multi-Survey Consensus -->
     <div id="v3-panel-multi" class="v3-subpanel" hidden>
-      <h4>Mission 8: Multi-Survey Consensus</h4>
-      <div id="v3-multi-readout" class="v3-ticker">SPHEREx 78% -&gt; Full Multi-Survey Consensus: 97%</div>
-      <div id="v3-multi-detail" class="v3-subnote">ZTF Optical: Match (g=19.4) | TESS: 0.31 d | NEOWISE: 0.62 mag</div>
+      <span class="mono-tag" style="color:var(--accent-primary);font-size:0.76rem;">ZTF + TESS + NEOWISE Cross-Archive Active</span>
     </div>
 
-    <div id="active-learning-dashboard" class="v3-subpanel">
-      <h4>Blink Quest Active Learning</h4>
-      <p>Model confidence: <span id="model-confidence">72%</span> (Projected 90% at ~150 votes)</p>
-      <p>Human votes: <span id="vote-count">45</span></p>
-      <progress id="accuracy-progress" value="72" max="100" aria-label="Model Confidence"></progress>
-      <button type="button" class="btn-secondary-action" onclick="requestNextReview()">Show Next Uncertainty Candidate</button>
+    <!-- Trajectory Playback Speed, Pause/Resume & Clickable Details -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <select id="v3-traj-speed" class="speed-select" aria-label="Trajectory Speed" onchange="setV3TrajectorySpeed(this.value)">
+        <option value="0.25">0.25×</option>
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1.0×</option>
+        <option value="2">2.0×</option>
+        <option value="5">5.0×</option>
+      </select>
+      <button type="button" id="v3-traj-pause-btn" class="v3-check-details-btn" onclick="toggleV3TrajectoryPause()">
+        ⏸ Pause
+      </button>
+      <button type="button" id="v3-check-details-btn" class="v3-check-details-btn" onclick="openV3MissionDetailsModal()">
+        Check Mission Details ↗
+      </button>
+    </div>
+
+    <!-- Hidden state holders so JS & API telemetry stay synced for the Details Modal -->
+    <div hidden>
+      <span id="v3-light-time-ticker"></span>
+      <span id="v3-res-gain"></span>
+      <span id="v3-snr-gain"></span>
+      <span id="v3-tca-readout"></span>
+      <span id="v3-iso-readout"></span>
+      <span id="v3-ocean-readout"></span>
+      <span id="v3-multi-readout"></span>
+      <span id="v3-multi-detail"></span>
+      <span id="model-confidence">72%</span>
+      <span id="vote-count">45</span>
+      <progress id="accuracy-progress" value="72" max="100"></progress>
     </div>
   </aside>
 
-  <script src="globe3d.js?v=3.8"></script>
-  <script src="app.js?v=3.8"></script>
+  <!-- Clickable Mission Readout & Explained Details Modal -->
+  <div id="v3-details-modal" class="modal-3d-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="v3-modal-title">
+    <div class="modal-3d-card v3-details-modal-card">
+      <div class="modal-3d-header">
+        <div>
+          <span class="mono-tag" id="v3-modal-eyebrow" style="color:var(--accent-primary);">MISSION TELEMETRY &amp; EXPLAINED DETAILS</span>
+          <h3 id="v3-modal-title">Live Mission Readout</h3>
+        </div>
+        <button type="button" class="btn-secondary-action" onclick="closeV3MissionDetailsModal()">Close ✕</button>
+      </div>
+      <p id="v3-modal-subtitle" class="card-plain-desc"></p>
+
+      <!-- Live Telemetry Summary Banner (The exact readout values explained clearly) -->
+      <div id="v3-modal-live-banner" class="v3-modal-live-banner"></div>
+
+      <!-- 3 Explained Cards -->
+      <div id="v3-modal-cards-grid" class="beginner-explainer-grid"></div>
+    </div>
+  </div>
+
+  <script src="globe3d.js?v=4.6"></script>
+  <script src="app.js?v=4.6"></script>
 </body>
 </html>

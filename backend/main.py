@@ -346,9 +346,7 @@ def export_report(format: str = Query("json", pattern="^(json|csv|mpc|votable|ht
     )
 
 
-FRONTEND_DIR = ROOT_DIR / "frontend"
-if FRONTEND_DIR.exists():
-    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+
 
 # --- v3 Mission 5-9 REST Endpoints (Preserving all preexisting routes) ---
 from fastapi import Query as _V3Query
@@ -436,3 +434,7 @@ def v3_live_nasa_sync(
         "observations_count": analysis.get("observations_count", 0),
         "last_sweep_utc": tracklet_db.last_sweep_utc,
     }
+
+FRONTEND_DIR = ROOT_DIR / "frontend"
+if FRONTEND_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

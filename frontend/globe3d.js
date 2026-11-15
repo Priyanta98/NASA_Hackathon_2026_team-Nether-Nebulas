@@ -140,7 +140,12 @@ window.ChronoSky3D = (function () {
     plutoNewHorizons: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Pluto_in_True_Color_-_High-Res.jpg",
     marsOSIRIS: "https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg",
     jupiterVoyager: "https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg",
-    neptuneVoyager: "https://upload.wikimedia.org/wikipedia/commons/6/63/Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg"
+    neptuneVoyager: "https://upload.wikimedia.org/wikipedia/commons/6/63/Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg",
+    barnardsStar: "https://commons.wikimedia.org/wiki/Special:FilePath/BarnardsStar.jpg",
+    epsilonIndiB: "https://commons.wikimedia.org/wiki/Special:FilePath/Epsilon_Indi_B_(eso0303a).jpg",
+    wise0855: "https://commons.wikimedia.org/wiki/Special:FilePath/WISE_0855-0714_NIRCam4.jpg",
+    rwAurigae: "https://alasky.cds.unistra.fr/hips-image-services/hips2fits?hips=CDS%2FP%2FDSS2%2Fcolor&width=512&height=512&fov=0.18&ra=76.9563&dec=30.4014&format=jpg",
+    rDraconis: "https://alasky.cds.unistra.fr/hips-image-services/hips2fits?hips=CDS%2FP%2FDSS2%2Fcolor&width=512&height=512&fov=0.18&ra=248.1675&dec=66.7539&format=jpg"
   };
 
   // Converts any NASA spacecraft image (whether a full 2:1 equirectangular map like LRO Moon
@@ -333,6 +338,31 @@ window.ChronoSky3D = (function () {
       ...build3DReliefBundleFromImage(null, [59, 130, 246], true, true),
       bumpScale: 0.015,
       dispScale: 0.0
+    },
+    barnards_star: {
+      ...build3DReliefBundleFromImage(null, [239, 92, 58], false, true),
+      bumpScale: 0.02,
+      dispScale: 0.01
+    },
+    epsilon_indi_b: {
+      ...build3DReliefBundleFromImage(null, [168, 72, 118], false, true),
+      bumpScale: 0.02,
+      dispScale: 0.0
+    },
+    wise_0855: {
+      ...build3DReliefBundleFromImage(null, [118, 62, 132], false, true),
+      bumpScale: 0.02,
+      dispScale: 0.0
+    },
+    rw_aurigae: {
+      ...build3DReliefBundleFromImage(null, [245, 178, 78], false, true),
+      bumpScale: 0.025,
+      dispScale: 0.01
+    },
+    r_draconis: {
+      ...build3DReliefBundleFromImage(null, [234, 88, 64], false, true),
+      bumpScale: 0.025,
+      dispScale: 0.01
     }
   };
 
@@ -356,6 +386,11 @@ window.ChronoSky3D = (function () {
   loadAndProcessRealPlanetImage("mars", TEXTURE_URLS.marsOSIRIS, [198, 98, 60], true, false);
   loadAndProcessRealPlanetImage("jupiter", TEXTURE_URLS.jupiterVoyager, [212, 168, 118], true, true);
   loadAndProcessRealPlanetImage("neptune", TEXTURE_URLS.neptuneVoyager, [64, 136, 248], true, true);
+  loadAndProcessRealPlanetImage("barnards_star", TEXTURE_URLS.barnardsStar, [239, 92, 58], false, true);
+  loadAndProcessRealPlanetImage("epsilon_indi_b", TEXTURE_URLS.epsilonIndiB, [168, 72, 118], false, true);
+  loadAndProcessRealPlanetImage("wise_0855", TEXTURE_URLS.wise0855, [118, 62, 132], false, true);
+  loadAndProcessRealPlanetImage("rw_aurigae", TEXTURE_URLS.rwAurigae, [245, 178, 78], false, true);
+  loadAndProcessRealPlanetImage("r_draconis", TEXTURE_URLS.rDraconis, [234, 88, 64], false, true);
 
   // 4. High-Density 128x128 3D Planet Mesh with Physical Displacement & Bump Relief
   const planetGroup = new THREE.Group();
@@ -442,6 +477,31 @@ window.ChronoSky3D = (function () {
       planetMat.roughness = 0.55;
       cloudMesh.visible = false;
       atmoMat.color.setHex(0xf59e0b);
+    } else if (bodyKey === "barnards_star") {
+      planetMat.color.setHex(0xffffff);
+      planetMat.roughness = 0.45;
+      cloudMesh.visible = false;
+      atmoMat.color.setHex(0xef4444);
+    } else if (bodyKey === "epsilon_indi_b") {
+      planetMat.color.setHex(0xffffff);
+      planetMat.roughness = 0.55;
+      cloudMesh.visible = false;
+      atmoMat.color.setHex(0xa855f7);
+    } else if (bodyKey === "wise_0855") {
+      planetMat.color.setHex(0xffffff);
+      planetMat.roughness = 0.60;
+      cloudMesh.visible = false;
+      atmoMat.color.setHex(0x7c3aed);
+    } else if (bodyKey === "rw_aurigae") {
+      planetMat.color.setHex(0xffffff);
+      planetMat.roughness = 0.40;
+      cloudMesh.visible = false;
+      atmoMat.color.setHex(0xf59e0b);
+    } else if (bodyKey === "r_draconis") {
+      planetMat.color.setHex(0xffffff);
+      planetMat.roughness = 0.42;
+      cloudMesh.visible = false;
+      atmoMat.color.setHex(0xf97316);
     } else {
       planetMat.color.setHex(0xbfdbfe);
       planetMat.roughness = 0.65;
@@ -543,6 +603,8 @@ window.ChronoSky3D = (function () {
   let v3Curve = null;
   let v3Progress = 0;
   let v3AnimId = null;
+  let v3TrajSpeed = 1.0;
+  let v3TrajPaused = false;
 
   function makeTextSprite(textStr, borderColor) {
     const c = document.createElement("canvas");
@@ -677,22 +739,36 @@ window.ChronoSky3D = (function () {
     });
 
     v3Progress = 0;
+    v3TrajPaused = false;
     function stepApproach() {
       if (!v3Curve || !v3Spacecraft || !v3Spacecraft.visible) return;
-      v3Progress += 0.0042;
-      if (v3Progress > 1) v3Progress = 0;
-      const s = v3Progress * v3Progress * (3 - 2 * v3Progress);
-      const pos = v3Curve.getPointAt(s);
-      v3Spacecraft.position.copy(pos);
-      if (v3OriginEarth) v3OriginEarth.children[0].rotation.y += 0.01;
+      if (!v3TrajPaused) {
+        v3Progress += 0.0012 * v3TrajSpeed;
+        if (v3Progress > 1) v3Progress = 0;
+        const s = v3Progress * v3Progress * (3 - 2 * v3Progress);
+        const pos = v3Curve.getPointAt(s);
+        v3Spacecraft.position.copy(pos);
+        if (v3OriginEarth) v3OriginEarth.children[0].rotation.y += 0.004 * v3TrajSpeed;
+      }
       v3AnimId = requestAnimationFrame(stepApproach);
     }
     v3AnimId = requestAnimationFrame(stepApproach);
   }
 
+  function setV3TrajectorySpeed(mult) {
+    v3TrajSpeed = Math.max(0.1, parseFloat(mult) || 1.0);
+  }
+
+  function toggleV3TrajectoryPause() {
+    v3TrajPaused = !v3TrajPaused;
+    return v3TrajPaused;
+  }
+
   return {
     runCatmullApproach,
     clearV3Trajectory,
+    setV3TrajectorySpeed,
+    toggleV3TrajectoryPause,
     transitionToPlanet,
     triggerFastScrollSpin,
     rotateForTimeSlider

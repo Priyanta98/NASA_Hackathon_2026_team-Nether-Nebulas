@@ -84,6 +84,76 @@ const PLANET_PROFILES = {
     snrNote: "Outer-System Astrometric Reference",
     velocity: "42.1 ± 0.0050 arcsec / day",
     velNum: 4.2
+  },
+  barnards_star: {
+    key: "barnards_star",
+    tierLabel: "NASA BENCHMARK TARGET  •  HIGH PROPER-MOTION STAR",
+    heading: "Barnard's Star (M4V Red Dwarf • 5.96 ly)",
+    ra: 269.4521,
+    dec: 4.6933,
+    archive: "NASA SPHEREx / Gaia DR3 Proper Motion Benchmark",
+    distance: "5.96 Light-Years (376,900 AU)",
+    regime: "Fastest-Moving Known Star (10.36 arcsec/yr)",
+    spectrum: "1.4–2.5 μm H₂O Steam & TiO / FeH Bands",
+    snrNote: "Multi-Epoch Astrometric Drift Verification",
+    velocity: "0.0284 ± 0.0001 arcsec / day",
+    velNum: 0.03
+  },
+  epsilon_indi_b: {
+    key: "epsilon_indi_b",
+    tierLabel: "NASA BENCHMARK TARGET  •  BINARY BROWN DWARF PAIR",
+    heading: "Epsilon Indi B (Ba/Bb T1V+T6V Brown Dwarfs • 11.87 ly)",
+    ra: 331.0438,
+    dec: -56.7828,
+    archive: "NASA SPHEREx / VLT / WISE Benchmark",
+    distance: "11.87 Light-Years (750,500 AU)",
+    regime: "Binary Substellar Pair Orbiting Epsilon Indi A",
+    spectrum: "1.6 & 3.3 μm Strong CH₄ + H₂O Absorption",
+    snrNote: "High-PM Companion Motion (4.70 arcsec/yr)",
+    velocity: "0.0129 ± 0.0002 arcsec / day",
+    velNum: 0.013
+  },
+  wise_0855: {
+    key: "wise_0855",
+    tierLabel: "NASA BENCHMARK TARGET  •  FAST-MOVING Y-DWARF",
+    heading: "WISE 0855 (Coldest Known Brown Dwarf • 7.4 ly)",
+    ra: 133.7951,
+    dec: -7.2451,
+    archive: "NASA WISE / SPHEREx Band 4–6 Benchmark",
+    distance: "7.42 Light-Years (469,200 AU)",
+    regime: "Substellar Y-Dwarf (~250 K • 8.12 arcsec/yr)",
+    spectrum: "4.5–5.0 μm Water Cloud & NH₃ / CH₄ Features",
+    snrNote: "Extreme Proper-Motion Benchmark (08h55m10.83s, -7d14m42.5s)",
+    velocity: "0.0222 ± 0.0003 arcsec / day",
+    velNum: 0.022
+  },
+  rw_aurigae: {
+    key: "rw_aurigae",
+    tierLabel: "NASA BENCHMARK TARGET  •  VARIABLE STAR",
+    heading: "RW Aurigae (Classical T Tauri Variable Binary)",
+    ra: 76.9563,
+    dec: 30.4014,
+    archive: "NASA SPHEREx Time-Domain Variability Benchmark",
+    distance: "530 Light-Years (Taurus-Auriga Cloud)",
+    regime: "Circumstellar Dust Occultation & Accretion Variability",
+    spectrum: "1.0–5.0 μm Hot Dust Excess + CO / H₂O Emission",
+    snrNote: "Irregular Multi-Magnitude IR Flux Variability",
+    velocity: "0.0001 ± 0.0001 arcsec / day",
+    velNum: 0.001
+  },
+  r_draconis: {
+    key: "r_draconis",
+    tierLabel: "NASA BENCHMARK TARGET  •  MIRA VARIABLE STAR",
+    heading: "R Draconis (Mira-Type Long-Period Variable • 245.5 d)",
+    ra: 248.1675,
+    dec: 66.7539,
+    archive: "NASA SPHEREx / AAVSO Infrared Variability Benchmark",
+    distance: "1,740 Light-Years",
+    regime: "245.5-Day Pulsating AGB Giant Variable",
+    spectrum: "2.3 μm CO & 2.7 μm H₂O Pulsation Bands",
+    snrNote: "Strong Epoch-to-Epoch IR Brightness Change",
+    velocity: "0.0001 ± 0.0001 arcsec / day",
+    velNum: 0.001
   }
 };
 
@@ -210,7 +280,24 @@ function toggleColorTheme() {
 }
 
 // --- 2. View Switching: Overview (Earth) vs Start Exploring / Time-Travel (Respective Centered Planet + 4 Callout Cards) ---
-function startDeepSpaceJourney(btnEl) {
+
+function exitV3MissionMode() {
+  activeV3MissionId = "core";
+  const mSel = document.getElementById("mission-selector");
+  if (mSel) mSel.value = "core";
+  const drawer = document.getElementById("v3-mission-drawer");
+  if (drawer) drawer.hidden = true;
+  const hud = document.getElementById("planet-radial-hud");
+  if (hud) hud.classList.remove("radial-patches-hidden");
+  const guide = document.getElementById("mission-detailed-guide");
+  if (guide) guide.classList.add("hidden");
+  if (window.ChronoSky3D && window.ChronoSky3D.clearV3Trajectory) {
+    window.ChronoSky3D.clearV3Trajectory();
+  }
+}
+
+function startDeepSpaceJourney(btnEl, keepV3Mission) {
+  if (!keepV3Mission) exitV3MissionMode();
   setActiveNavButton(btnEl || document.querySelector('[data-nav="explore"]'));
   stopOrbitalPlayback();
 
@@ -226,6 +313,7 @@ function startDeepSpaceJourney(btnEl) {
 }
 
 function startTimeTravelTransit(btnEl) {
+  exitV3MissionMode();
   setActiveNavButton(btnEl || document.querySelector('[data-nav="timetravel"]'));
   stopOrbitalPlayback();
 
@@ -241,6 +329,7 @@ function startTimeTravelTransit(btnEl) {
 }
 
 function returnToEarthView(btnEl) {
+  exitV3MissionMode();
   setActiveNavButton(btnEl || document.querySelector('[data-nav="home"]'));
   stopOrbitalPlayback();
 
@@ -257,6 +346,13 @@ function returnToEarthView(btnEl) {
 function switchPlanetTarget(planetKey) {
   activePlanetKey = planetKey;
   applyProfileToRadialCards(planetKey);
+  const p = PLANET_PROFILES[planetKey];
+  if (p) {
+    const raInp = document.getElementById("inp-ra");
+    const decInp = document.getElementById("inp-dec");
+    if (raInp) raInp.value = p.ra.toFixed(4);
+    if (decInp) decInp.value = p.dec.toFixed(4);
+  }
 
   const hudVisible = !document.getElementById("planet-radial-hud").classList.contains("hidden");
   if (hudVisible) {
@@ -989,7 +1085,62 @@ function renderMissionDetailedGuide(missionId) {
     .join("");
 }
 
+
+let activeV3MissionId = "core";
+
+function getV3LiveBannerText(missionId) {
+  if (missionId === "navigator") {
+    const t = (document.getElementById("v3-light-time-ticker") || {}).textContent || "";
+    const g = (document.getElementById("v3-res-gain") || {}).textContent || "";
+    const s = (document.getElementById("v3-snr-gain") || {}).textContent || "";
+    const tca = (document.getElementById("v3-tca-readout") || {}).textContent || "";
+    return `${t}  •  ${g}  •  ${s}  •  ${tca}`;
+  }
+  if (missionId === "interstellar") {
+    return (document.getElementById("v3-iso-readout") || {}).textContent || "";
+  }
+  if (missionId === "ocean") {
+    return (document.getElementById("v3-ocean-readout") || {}).textContent || "";
+  }
+  if (missionId === "multi") {
+    const r = (document.getElementById("v3-multi-readout") || {}).textContent || "";
+    const d = (document.getElementById("v3-multi-detail") || {}).textContent || "";
+    return `${r}  •  ${d}`;
+  }
+  return "";
+}
+
+function openV3MissionDetailsModal() {
+  const mSel = document.getElementById("mission-selector");
+  const missionId = mSel ? mSel.value : activeV3MissionId;
+  const builder = MISSION_DETAILED_GUIDES[missionId];
+  const modal = document.getElementById("v3-details-modal");
+  if (!modal || !builder) return;
+
+  const spec = builder();
+  document.getElementById("v3-modal-eyebrow").textContent = spec.eyebrow;
+  document.getElementById("v3-modal-title").textContent = spec.title;
+  document.getElementById("v3-modal-subtitle").textContent = spec.subtitle;
+  document.getElementById("v3-modal-live-banner").textContent = getV3LiveBannerText(missionId);
+  document.getElementById("v3-modal-cards-grid").innerHTML = spec.cards
+    .map(
+      (c) => `<article class="explainer-card">
+        <div class="step-index">${c.step}</div>
+        <h3>${c.title}</h3>
+        <p>${c.body}</p>
+      </article>`
+    )
+    .join("");
+  modal.classList.remove("hidden");
+}
+
+function closeV3MissionDetailsModal() {
+  const modal = document.getElementById("v3-details-modal");
+  if (modal) modal.classList.add("hidden");
+}
+
 function switchMissionV3(missionId) {
+  activeV3MissionId = missionId;
   const drawer = document.getElementById("v3-mission-drawer");
   document.querySelectorAll(".v3-subpanel").forEach((el) => {
     if (el.id !== "active-learning-dashboard") {
@@ -1001,20 +1152,25 @@ function switchMissionV3(missionId) {
   const hud = document.getElementById("planet-radial-hud");
   if (hud) hud.classList.toggle("radial-patches-hidden", missionId !== "core");
   if (missionId === "core") {
-    if (drawer) drawer.hidden = true;
-    if (window.ChronoSky3D && window.ChronoSky3D.clearV3Trajectory) {
-      window.ChronoSky3D.clearV3Trajectory();
-    }
+    exitV3MissionMode();
     applyProfileToRadialCards(activePlanetKey);
     return;
   }
 
-  // Ensure the centered 3D planet + 4 radial cards are visible when any Mission 5-8 is selected
-  if (document.getElementById("planet-radial-hud").classList.contains("hidden")) {
-    startDeepSpaceJourney();
+  // Transition cleanly to dedicated Mission 3D screen (no Overview text, no Time-Travel bar, no 4 radial patches)
+  stopOrbitalPlayback();
+  document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
+  document.getElementById("hero-copy-box").classList.add("hidden");
+  document.getElementById("time-travel-bottom-bar").classList.add("hidden");
+  document.getElementById("planet-radial-hud").classList.remove("hidden");
+  document.getElementById("planet-radial-hud").classList.add("radial-patches-hidden");
+  if (window.ChronoSky3D) {
+    window.ChronoSky3D.transitionToPlanet(activePlanetKey, true);
   }
 
   if (drawer) drawer.hidden = false;
+  const pBtn = document.getElementById("v3-traj-pause-btn");
+  if (pBtn) pBtn.textContent = "⏸ Pause";
   const targetPanel = document.getElementById(`v3-panel-${missionId}`);
   if (targetPanel) targetPanel.hidden = false;
 
@@ -1074,3 +1230,17 @@ window.addEventListener("DOMContentLoaded", () => {
   syncWithLiveNasaArchive();
   setInterval(syncWithLiveNasaArchive, 60000);
 });
+
+function setV3TrajectorySpeed(mult) {
+  if (window.ChronoSky3D && window.ChronoSky3D.setV3TrajectorySpeed) {
+    window.ChronoSky3D.setV3TrajectorySpeed(mult);
+  }
+}
+
+function toggleV3TrajectoryPause() {
+  if (window.ChronoSky3D && window.ChronoSky3D.toggleV3TrajectoryPause) {
+    const isPaused = window.ChronoSky3D.toggleV3TrajectoryPause();
+    const btn = document.getElementById("v3-traj-pause-btn");
+    if (btn) btn.textContent = isPaused ? "▶ Play" : "⏸ Pause";
+  }
+}

@@ -151,3 +151,12 @@ MISSION_REGISTRY = {
 Settings.MISSION_REGISTRY = MISSION_REGISTRY
 Settings.DEEP_DIVE_MAX_DIST_AU = DEEP_DIVE_MAX_DIST_AU
 Settings.APPROACH_STANDOFF_DEFAULT_AU = APPROACH_STANDOFF_DEFAULT_AU
+
+NASA_BENCHMARK_TARGETS = {
+    "barnards_star": {"name": "Barnard's Star", "ra": 269.4521, "dec": 4.6933, "type": "High-PM Red Dwarf (10.36 arcsec/yr)"},
+    "epsilon_indi_b": {"name": "Epsilon Indi B", "ra": 331.0438, "dec": -56.7828, "type": "Binary Brown Dwarf (T1V/T6V)"},
+    "wise_0855": {"name": "WISE 0855", "ra": 133.7951, "dec": -7.2451, "type": "Fast-Moving Y-Dwarf (8.12 arcsec/yr)"},
+    "rw_aurigae": {"name": "RW Aurigae", "ra": 76.9563, "dec": 30.4014, "type": "T Tauri Variable Star"},
+    "r_draconis": {"name": "R Draconis", "ra": 248.1675, "dec": 66.7539, "type": "Mira Variable Star (245.5 d)"},
+}
+Settings.NASA_BENCHMARK_TARGETS = NASA_BENCHMARK_TARGETS
