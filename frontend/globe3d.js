@@ -37,7 +37,7 @@ window.ChronoSky3D = (function () {
 
   // Balanced lighting so night/shadow sides show subtle geological detail while
   // oblique sunlight carves sharp shadows across crater rims, troughs, and crests
-  const ambientLight = new THREE.AmbientLight(0x475569, 1.35);
+  const ambientLight = new THREE.AmbientLight(0x94a3b8, 2.15);
   scene.add(ambientLight);
 
   const hemiLight = new THREE.HemisphereLight(0xcbd5e1, 0x1e293b, 0.65);
@@ -66,10 +66,10 @@ window.ChronoSky3D = (function () {
   const starField = new THREE.Points(starGeo, starMat);
   scene.add(starField);
 
-  // 2. Solar System Orbit Context (Glowing 3D Sun + Heliocentric Orbit Track in Background)
+  // 2. Solar System Corridor Context (Glowing 3D Sun + All Planets at Respective Positions in Line)
   const solarOrbitGroup = new THREE.Group();
   solarOrbitGroup.position.set(0, -0.15, 0);
-  solarOrbitGroup.visible = false; // Shown in Start Exploring & Time-Travel Transit modes
+  solarOrbitGroup.visible = false; // Shown in Start Exploring, Time-Travel & Mission modes
   scene.add(solarOrbitGroup);
 
   function createSunGlowTexture() {
@@ -91,12 +91,13 @@ window.ChronoSky3D = (function () {
   const sunOrbiter = new THREE.Group();
   solarOrbitGroup.add(sunOrbiter);
 
-  const sunDistance = 16.5;
+  const sunDistance = 38.0;
+  const sunBasePos = new THREE.Vector3(-15.5, 2.4, -36.0);
   const sunMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.95, 48, 48),
+    new THREE.SphereGeometry(1.35, 48, 48),
     new THREE.MeshBasicMaterial({ color: 0xfffbeb })
   );
-  sunMesh.position.set(-sunDistance, 2.4, -10.5);
+  sunMesh.position.copy(sunBasePos);
   sunOrbiter.add(sunMesh);
 
   const sunHalo = new THREE.Sprite(
@@ -108,10 +109,10 @@ window.ChronoSky3D = (function () {
       depthWrite: false
     })
   );
-  sunHalo.scale.set(9.5, 9.5, 1);
+  sunHalo.scale.set(12.5, 12.5, 1);
   sunMesh.add(sunHalo);
 
-  // Visible Heliocentric Orbit Arc Passing Through the Planet Around the Distant Sun
+  // Visible Heliocentric Orbit Arc Passing Through the Target Planet Around the Distant Sun
   const orbitArcPts = [];
   for (let i = -90; i <= 90; i++) {
     const rad = (i * Math.PI) / 180;
@@ -119,9 +120,14 @@ window.ChronoSky3D = (function () {
   }
   const orbitArcLine = new THREE.Line(
     new THREE.BufferGeometry().setFromPoints(orbitArcPts),
-    new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.48 })
+    new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.42 })
   );
   solarOrbitGroup.add(orbitArcLine);
+
+  // Line of Solar System Planets at their respective orbital order between the Sun and the Outer System
+  const corridorPlanetsGroup = new THREE.Group();
+  solarOrbitGroup.add(corridorPlanetsGroup);
+  const corridorPlanetItems = [];
 
   // 3. 3D Topographic Relief & Deep Impact Basin Processor
   // Transforms real NASA spacecraft imagery so that:
@@ -132,26 +138,27 @@ window.ChronoSky3D = (function () {
   textureLoader.setCrossOrigin("anonymous");
 
   const TEXTURE_URLS = {
-    earthDay: "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg",
+    sun2k: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_sun.jpg",
+    mercury2k: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_mercury.jpg",
+    venus2k: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_venus_atmosphere.jpg",
+    earthDay: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_earth_daymap.jpg",
     earthSpecular: "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg",
     earthNormal: "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg",
     earthClouds: "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png",
-    moonLRO: "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/moon_1024.jpg",
-    plutoNewHorizons: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Pluto_in_True_Color_-_High-Res.jpg",
-    marsOSIRIS: "https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg",
-    jupiterVoyager: "https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg",
-    neptuneVoyager: "https://upload.wikimedia.org/wikipedia/commons/6/63/Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg",
-    barnardsStar: "https://commons.wikimedia.org/wiki/Special:FilePath/BarnardsStar.jpg",
-    epsilonIndiB: "https://commons.wikimedia.org/wiki/Special:FilePath/Epsilon_Indi_B_(eso0303a).jpg",
-    wise0855: "https://commons.wikimedia.org/wiki/Special:FilePath/WISE_0855-0714_NIRCam4.jpg",
-    rwAurigae: "https://alasky.cds.unistra.fr/hips-image-services/hips2fits?hips=CDS%2FP%2FDSS2%2Fcolor&width=512&height=512&fov=0.18&ra=76.9563&dec=30.4014&format=jpg",
-    rDraconis: "https://alasky.cds.unistra.fr/hips-image-services/hips2fits?hips=CDS%2FP%2FDSS2%2Fcolor&width=512&height=512&fov=0.18&ra=248.1675&dec=66.7539&format=jpg"
+    moonLRO: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_moon.jpg",
+    plutoNewHorizons: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_ceres_fictional.jpg",
+    marsOSIRIS: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_mars.jpg",
+    jupiterVoyager: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_jupiter.jpg",
+    saturn2k: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_saturn.jpg",
+    uranus2k: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_uranus.jpg",
+    neptuneVoyager: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_neptune.jpg",
+    barnardsStar: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_sun.jpg",
+    epsilonIndiB: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_jupiter.jpg",
+    wise0855: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_neptune.jpg",
+    rwAurigae: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_sun.jpg",
+    rDraconis: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_sun.jpg"
   };
 
-  // Converts any NASA spacecraft image (whether a full 2:1 equirectangular map like LRO Moon
-  // OR a circular planet disc photo surrounded by black space like New Horizons Pluto, OSIRIS Mars,
-  // Voyager Jupiter, and Voyager Neptune) into a 100% seamless 360° equirectangular texture + height map
-  // with ZERO black borders, ZERO vertical seams, and realistic 3D craters/troughs/crests.
   function build3DReliefBundleFromImage(img, baseToneRGB, isCircleDiscPhoto, isGasGiant) {
     const w = 1024;
     const h = 512;
@@ -183,7 +190,7 @@ window.ChronoSky3D = (function () {
       srcPixels = tCtx.getImageData(0, 0, w, h).data;
 
       // Auto-detect illuminated planet disc bounding box if image has black space margins
-      if (isCircleDiscPhoto) {
+      if (false) {
         let minX = w, maxX = 0, minY = h, maxY = 0;
         for (let py = 0; py < h; py += 2) {
           for (let px = 0; px < w; px += 2) {
@@ -230,7 +237,7 @@ window.ChronoSky3D = (function () {
         let b = baseToneRGB[2];
 
         if (srcPixels) {
-          if (isCircleDiscPhoto) {
+          if (false) {
             // Seamless Spherical Unwrap: map (lambda, phi) onto the interior of the illuminated NASA disc
             // Using cos(lambda) makes longitude wrap 0 -> pi -> 2*pi with zero seam at u=0/1!
             const nx = Math.sin(lambda - Math.PI * 0.5) * cosPhi;
@@ -262,6 +269,14 @@ window.ChronoSky3D = (function () {
           b = Math.max(15, Math.min(255, Math.round(baseToneRGB[2] + wave)));
         }
 
+        // Guarantee zero black spots: lift any dark pixel smoothly toward baseToneRGB
+        const rawLum = 0.299 * r + 0.587 * g + 0.114 * b;
+        if (rawLum < 42) {
+          const blend = (42 - rawLum) / 42.0;
+          r = Math.round(r * (1 - blend) + baseToneRGB[0] * blend);
+          g = Math.round(g * (1 - blend) + baseToneRGB[1] * blend);
+          b = Math.round(b * (1 - blend) + baseToneRGB[2] * blend);
+        }
         outPx[idx] = r;
         outPx[idx + 1] = g;
         outPx[idx + 2] = b;
@@ -392,21 +407,230 @@ window.ChronoSky3D = (function () {
   loadAndProcessRealPlanetImage("rw_aurigae", TEXTURE_URLS.rwAurigae, [245, 178, 78], false, true);
   loadAndProcessRealPlanetImage("r_draconis", TEXTURE_URLS.rDraconis, [234, 88, 64], false, true);
 
-  // 4. High-Density 128x128 3D Planet Mesh with Physical Displacement & Bump Relief
+  // 4A. Realistic 3D Solar System (Displayed on Overview Screen: Central Sun + Revolving Planets in Orbits)
+  const milkyWayGroup = new THREE.Group();
+  milkyWayGroup.position.set(2.35, -0.1, 0.0);
+  milkyWayGroup.rotation.x = 0.62;
+  milkyWayGroup.rotation.z = -0.18;
+  scene.add(milkyWayGroup);
+
+  const overviewOrbitingBodies = [];
+
+  (function buildOverviewSolarSystem() {
+    // 1. Central Glowing 3D Sun
+    const centerSun = new THREE.Mesh(
+      new THREE.SphereGeometry(0.42, 48, 48),
+      new THREE.MeshBasicMaterial({ map: textureLoader.load(TEXTURE_URLS.sun2k), color: 0xfffbeb })
+    );
+    milkyWayGroup.add(centerSun);
+
+    const centerSunGlow = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: createSunGlowTexture(),
+        color: 0xfbbf24,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      })
+    );
+    centerSunGlow.scale.set(2.45, 2.45, 1.0);
+    milkyWayGroup.add(centerSunGlow);
+
+    // 2. Solar System Planets + Real Textures + Keplerian Orbital Speeds
+    const solarPlanetsSpec = [
+      { name: "mercury", r: 0.68, size: 0.058, speed: 0.022, color: 0xffffff, tex: TEXTURE_URLS.mercury2k, phase: 0.4 },
+      { name: "venus",   r: 0.92, size: 0.084, speed: 0.016, color: 0xffffff, tex: TEXTURE_URLS.venus2k, phase: 1.8 },
+      { name: "earth",   r: 1.20, size: 0.094, speed: 0.012, color: 0xffffff, tex: TEXTURE_URLS.earthDay, phase: 3.1 },
+      { name: "mars",    r: 1.50, size: 0.078, speed: 0.009, color: 0xffffff, tex: TEXTURE_URLS.marsOSIRIS, phase: 4.5 },
+      { name: "jupiter", r: 1.96, size: 0.178, speed: 0.0055, color: 0xffffff, tex: TEXTURE_URLS.jupiterVoyager, phase: 0.9 },
+      { name: "saturn",  r: 2.44, size: 0.148, speed: 0.0040, color: 0xffffff, tex: TEXTURE_URLS.saturn2k, phase: 2.6, hasRings: true },
+      { name: "uranus",  r: 2.86, size: 0.108, speed: 0.0028, color: 0xffffff, tex: TEXTURE_URLS.uranus2k, phase: 5.1 },
+      { name: "neptune", r: 3.24, size: 0.105, speed: 0.0021, color: 0xffffff, tex: TEXTURE_URLS.neptuneVoyager, phase: 3.9 },
+      { name: "spx_trk", r: 3.62, size: 0.082, speed: 0.0014, color: 0xdbeafe, tex: TEXTURE_URLS.plutoNewHorizons, phase: 1.2, isCandidate: true }
+    ];
+
+    solarPlanetsSpec.forEach((sp) => {
+      // Heliocentric orbital ring
+      const orbitPts = [];
+      const segments = 128;
+      for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * Math.PI * 2.0;
+        orbitPts.push(new THREE.Vector3(Math.cos(theta) * sp.r, 0.0, Math.sin(theta) * sp.r));
+      }
+      const orbitGeom = new THREE.BufferGeometry().setFromPoints(orbitPts);
+      const orbitLine = new THREE.Line(
+        orbitGeom,
+        new THREE.LineBasicMaterial({
+          color: sp.isCandidate ? 0x38bdf8 : 0x64748b,
+          transparent: true,
+          opacity: sp.isCandidate ? 0.65 : 0.32
+        })
+      );
+      milkyWayGroup.add(orbitLine);
+
+      // Planet pivot & mesh
+      const matOpts = { color: sp.color };
+      if (sp.tex) {
+        matOpts.map = textureLoader.load(sp.tex);
+      }
+      const pMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(sp.size, 36, 36),
+        new THREE.MeshBasicMaterial(matOpts)
+      );
+
+      if (sp.hasRings) {
+        const ringGeo = new THREE.RingGeometry(sp.size * 1.45, sp.size * 2.35, 48);
+        ringGeo.rotateX(Math.PI / 2);
+        const ringMesh = new THREE.Mesh(
+          ringGeo,
+          new THREE.MeshBasicMaterial({
+            color: 0xfde68a,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.65
+          })
+        );
+        ringMesh.rotation.z = 0.35;
+        pMesh.add(ringMesh);
+      }
+
+      pMesh.position.set(Math.cos(sp.phase) * sp.r, 0.0, Math.sin(sp.phase) * sp.r);
+      milkyWayGroup.add(pMesh);
+
+      overviewOrbitingBodies.push({
+        mesh: pMesh,
+        r: sp.r,
+        speed: sp.speed,
+        angle: sp.phase
+      });
+    });
+
+    // Subtle Asteroid / Kuiper Belt Dust Particles
+    const beltCount = 900;
+    const beltGeo = new THREE.BufferGeometry();
+    const beltPos = new Float32Array(beltCount * 3);
+    for (let i = 0; i < beltCount; i++) {
+      const isKuiper = i > 350;
+      const rad = isKuiper ? 3.35 + Math.random() * 0.45 : 1.66 + Math.random() * 0.18;
+      const ang = Math.random() * Math.PI * 2.0;
+      beltPos[i * 3] = Math.cos(ang) * rad;
+      beltPos[i * 3 + 1] = (Math.random() - 0.5) * 0.08;
+      beltPos[i * 3 + 2] = Math.sin(ang) * rad;
+    }
+    beltGeo.setAttribute("position", new THREE.BufferAttribute(beltPos, 3));
+    const beltMat = new THREE.PointsMaterial({
+      color: 0x94a3b8,
+      size: 0.022,
+      transparent: true,
+      opacity: 0.55
+    });
+    milkyWayGroup.add(new THREE.Points(beltGeo, beltMat));
+  })();
+
+  // 4B. Build the Respective Corridor Planets (Mercury -> Neptune) + High-Density Target Body Mesh
+  const CORRIDOR_SPECS = [
+    { key: "mercury", order: 1, frac: 0.14, size: 0.24, color: 0xffffff, tex: TEXTURE_URLS.mercury2k, sideOffset: -0.95, yOffset: -0.15 },
+    { key: "venus",   order: 2, frac: 0.24, size: 0.34, color: 0xffffff, tex: TEXTURE_URLS.venus2k, sideOffset: 0.95, yOffset: 0.18 },
+    { key: "earth",   order: 3, frac: 0.35, size: 0.38, color: 0xffffff, tex: TEXTURE_URLS.earthDay, sideOffset: -1.05, yOffset: -0.12 },
+    { key: "mars",    order: 4, frac: 0.46, size: 0.30, color: 0xffffff, tex: TEXTURE_URLS.marsOSIRIS, sideOffset: 1.0, yOffset: 0.15 },
+    { key: "jupiter", order: 5, frac: 0.60, size: 0.68, color: 0xffffff, tex: TEXTURE_URLS.jupiterVoyager, sideOffset: -1.35, yOffset: -0.20 },
+    { key: "saturn",  order: 6, frac: 0.73, size: 0.56, color: 0xffffff, tex: TEXTURE_URLS.saturn2k, sideOffset: 1.35, yOffset: 0.22, hasRings: true },
+    { key: "uranus",  order: 7, frac: 0.84, size: 0.42, color: 0xffffff, tex: TEXTURE_URLS.uranus2k, sideOffset: -1.15, yOffset: -0.14 },
+    { key: "neptune", order: 8, frac: 0.92, size: 0.42, color: 0xffffff, tex: TEXTURE_URLS.neptuneVoyager, sideOffset: 1.15, yOffset: 0.14 }
+  ];
+
+  CORRIDOR_SPECS.forEach((sp) => {
+    const matOpts = { color: sp.color };
+    if (sp.tex) {
+      matOpts.map = textureLoader.load(sp.tex);
+    }
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(sp.size, 36, 36),
+      new THREE.MeshBasicMaterial(matOpts)
+    );
+    if (sp.hasRings) {
+      const rGeo = new THREE.RingGeometry(sp.size * 1.4, sp.size * 2.3, 48);
+      rGeo.rotateX(Math.PI / 2);
+      const rMesh = new THREE.Mesh(
+        rGeo,
+        new THREE.MeshBasicMaterial({ color: 0xfde68a, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
+      );
+      rMesh.rotation.z = 0.32;
+      mesh.add(rMesh);
+    }
+
+    // Individual orbital arc segment passing through this planet's stationary position
+    const ringPts = [];
+    for (let a = -28; a <= 28; a += 2) {
+      const rRad = (a * Math.PI) / 180.0;
+      ringPts.push(new THREE.Vector3(Math.sin(rRad) * 9.0, Math.sin(rRad) * 0.4, (1.0 - Math.cos(rRad)) * 4.0));
+    }
+    const localArc = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(ringPts),
+      new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.28 })
+    );
+    mesh.add(localArc);
+
+    corridorPlanetsGroup.add(mesh);
+    corridorPlanetItems.push({ spec: sp, mesh });
+  });
+
+  // Position all corridor planets at their respective heliocentric distances along the Sun -> Target line
+  function layoutCorridorPlanetsForTarget(targetKey) {
+    const targetFracMap = {
+      mars: 0.46,
+      jupiter: 0.60,
+      neptune: 0.92,
+      spx_trk_002: 1.0,
+      spx_trk_001: 1.0,
+      barnards_star: 1.0,
+      epsilon_indi_b: 1.0,
+      wise_0855: 1.0,
+      rw_aurigae: 1.0,
+      r_draconis: 1.0
+    };
+    const tFrac = targetFracMap[targetKey] || 1.0;
+    const sunPos = sunMesh.position;
+    const targetLocalPos = new THREE.Vector3(0.0, 0.0, 0.0);
+
+    // Axis from Sun to Target Object
+    const dir = new THREE.Vector3().subVectors(targetLocalPos, sunPos);
+    // Perpendicular horizontal vector in XZ plane so planets sit cleanly along the flight corridor
+    const perp = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+
+    corridorPlanetItems.forEach((item) => {
+      const sp = item.spec;
+      if (sp.key === targetKey) {
+        // The selected target is rendered as the main high-res centered planetMesh
+        item.mesh.visible = false;
+        return;
+      }
+      item.mesh.visible = true;
+      // Relative distance ratio along the Sun -> Target ray
+      const rel = sp.frac / tFrac;
+      const basePt = new THREE.Vector3().copy(sunPos).addScaledVector(dir, rel);
+      basePt.addScaledVector(perp, sp.sideOffset);
+      basePt.y += sp.yOffset;
+      item.mesh.position.copy(basePt);
+    });
+  }
+
   const planetGroup = new THREE.Group();
-  planetGroup.position.set(2.4, -0.2, 0);
+  planetGroup.position.set(0.0, -0.15, 0.0);
+  planetGroup.visible = false;
   scene.add(planetGroup);
 
   const planetRadius = 2.32;
   const planetMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
-    map: planetBundles.earth.colorMap,
-    bumpMap: planetBundles.earth.heightMap,
-    bumpScale: 0.05,
-    displacementMap: planetBundles.earth.heightMap,
-    displacementScale: 0.02,
-    displacementBias: -0.01,
-    roughness: 0.72,
+    map: planetBundles.spx_trk_002.colorMap,
+    bumpMap: planetBundles.spx_trk_002.heightMap,
+    bumpScale: 0.12,
+    displacementMap: planetBundles.spx_trk_002.heightMap,
+    displacementScale: 0.07,
+    displacementBias: -0.035,
+    roughness: 0.78,
     metalness: 0.06
   });
 
@@ -414,19 +638,18 @@ window.ChronoSky3D = (function () {
   planetMesh.rotation.z = 0.35;
   planetGroup.add(planetMesh);
 
-  // Cloud layer (visible only for Earth)
   const cloudMesh = new THREE.Mesh(
     new THREE.SphereGeometry(planetRadius * 1.012, 64, 64),
     new THREE.MeshLambertMaterial({
       map: textureLoader.load(TEXTURE_URLS.earthClouds),
       transparent: true,
-      opacity: 0.42,
+      opacity: 0.0,
       blending: THREE.AdditiveBlending
     })
   );
+  cloudMesh.visible = false;
   planetGroup.add(cloudMesh);
 
-  // Subtle Atmospheric / Icy Rim Halo
   const atmoMat = new THREE.MeshBasicMaterial({
     color: 0x38bdf8,
     transparent: true,
@@ -437,9 +660,16 @@ window.ChronoSky3D = (function () {
   const atmoMesh = new THREE.Mesh(new THREE.SphereGeometry(planetRadius * 1.035, 64, 64), atmoMat);
   planetGroup.add(atmoMesh);
 
-  let currentBodyKey = "earth";
-  let targetGroupPos = new THREE.Vector3(2.4, -0.2, 0);
+  let currentBodyKey = "spx_trk_002";
+  let targetGroupPos = new THREE.Vector3(0.0, -0.15, 0.0);
   let isMovingPosition = false;
+
+  // Camera Sun-through-Planets-to-Object Focus Fly-Through State
+  let isFocusingFromSun = false;
+  let focusStartTime = 0;
+  const focusDurationMs = 3100;
+  let focusCameraCurve = null;
+  let focusLookCurve = null;
 
   function applyPlanetAppearance(bodyKey) {
     currentBodyKey = bodyKey;
@@ -451,81 +681,108 @@ window.ChronoSky3D = (function () {
     planetMat.displacementMap = b.heightMap;
     planetMat.displacementScale = b.dispScale;
     planetMat.displacementBias = -b.dispScale * 0.5;
+    cloudMesh.visible = false;
 
-    if (bodyKey === "earth") {
-      planetMat.color.setHex(0xffffff);
-      planetMat.roughness = 0.62;
-      cloudMesh.visible = true;
-      atmoMat.color.setHex(0x38bdf8);
-    } else if (bodyKey === "spx_trk_002") {
+    if (bodyKey === "spx_trk_002") {
       planetMat.color.setHex(0xdbeafe);
       planetMat.roughness = 0.82;
-      cloudMesh.visible = false;
       atmoMat.color.setHex(0x38bdf8);
     } else if (bodyKey === "spx_trk_001") {
       planetMat.color.setHex(0xe0f2fe);
       planetMat.roughness = 0.78;
-      cloudMesh.visible = false;
       atmoMat.color.setHex(0x0284c7);
     } else if (bodyKey === "mars") {
       planetMat.color.setHex(0xfecaca);
       planetMat.roughness = 0.85;
-      cloudMesh.visible = false;
       atmoMat.color.setHex(0xf97316);
     } else if (bodyKey === "jupiter") {
       planetMat.color.setHex(0xfef3c7);
       planetMat.roughness = 0.55;
-      cloudMesh.visible = false;
       atmoMat.color.setHex(0xf59e0b);
     } else if (bodyKey === "barnards_star") {
-      planetMat.color.setHex(0xffffff);
+      planetMat.color.setHex(0xff8a65);
       planetMat.roughness = 0.45;
-      cloudMesh.visible = false;
       atmoMat.color.setHex(0xef4444);
     } else if (bodyKey === "epsilon_indi_b") {
-      planetMat.color.setHex(0xffffff);
+      planetMat.color.setHex(0xd8b4fe);
       planetMat.roughness = 0.55;
-      cloudMesh.visible = false;
       atmoMat.color.setHex(0xa855f7);
     } else if (bodyKey === "wise_0855") {
-      planetMat.color.setHex(0xffffff);
+      planetMat.color.setHex(0xa78bfa);
       planetMat.roughness = 0.60;
-      cloudMesh.visible = false;
       atmoMat.color.setHex(0x7c3aed);
     } else if (bodyKey === "rw_aurigae") {
-      planetMat.color.setHex(0xffffff);
+      planetMat.color.setHex(0xfef08a);
       planetMat.roughness = 0.40;
-      cloudMesh.visible = false;
       atmoMat.color.setHex(0xf59e0b);
     } else if (bodyKey === "r_draconis") {
-      planetMat.color.setHex(0xffffff);
+      planetMat.color.setHex(0xfca5a5);
       planetMat.roughness = 0.42;
-      cloudMesh.visible = false;
       atmoMat.color.setHex(0xf97316);
     } else {
       planetMat.color.setHex(0xbfdbfe);
       planetMat.roughness = 0.65;
-      cloudMesh.visible = false;
       atmoMat.color.setHex(0x38bdf8);
     }
     planetMat.needsUpdate = true;
   }
 
   function transitionToPlanet(bodyKey, centered = true, onComplete) {
-    applyPlanetAppearance(bodyKey);
-    if (centered) {
-      targetGroupPos.set(0.0, -0.15, 0.0);
-      solarOrbitGroup.visible = true;
-    } else {
-      targetGroupPos.set(2.4, -0.2, 0.0);
+    if (!centered || bodyKey === "milkyway" || bodyKey === "earth") {
+      // Overview Mode: Show Revolving 3D Solar System on Right, Hide Focused Target Corridor
+      isFocusingFromSun = false;
+      milkyWayGroup.visible = true;
+      planetGroup.visible = false;
       solarOrbitGroup.visible = false;
+      camera.position.set(0.0, 0.0, 9.2);
+      controls.target.set(0.0, 0.0, 0.0);
+      controls.update();
       sunLight.position.set(-11, 5, 10);
-    }
-    isMovingPosition = true;
-    setTimeout(() => {
-      isMovingPosition = false;
       if (typeof onComplete === "function") onComplete();
-    }, 850);
+      return;
+    }
+
+    // Explore / Time-Travel Mode:
+    // 1. Keep Sun at sunBasePos and place all other planets at their respective positions in line
+    sunMesh.position.copy(sunBasePos);
+    layoutCorridorPlanetsForTarget(bodyKey);
+
+    applyPlanetAppearance(bodyKey);
+    milkyWayGroup.visible = false;
+    planetGroup.visible = true;
+    planetGroup.position.set(0.0, -0.15, 0.0);
+    targetGroupPos.set(0.0, -0.15, 0.0);
+    solarOrbitGroup.visible = true;
+
+    const sunWorld = new THREE.Vector3();
+    sunMesh.getWorldPosition(sunWorld);
+    const targetWorld = new THREE.Vector3(0.0, -0.15, 0.0);
+    const finalCamPos = new THREE.Vector3(0.0, 0.0, 9.2);
+
+    // Build a smooth flight path starting right at the Sun, passing directly between the line of planets
+    // (Mercury -> Venus -> Earth -> Mars -> Jupiter -> Saturn -> Uranus -> Neptune), and arriving at the Target Object!
+    const p0 = new THREE.Vector3().lerpVectors(sunWorld, targetWorld, 0.06).add(new THREE.Vector3(0, 0.4, 0));
+    const p1 = new THREE.Vector3().lerpVectors(sunWorld, targetWorld, 0.32).add(new THREE.Vector3(0, 0.25, 0));
+    const p2 = new THREE.Vector3().lerpVectors(sunWorld, targetWorld, 0.64).add(new THREE.Vector3(0, 0.15, 0));
+    const p3 = new THREE.Vector3().lerpVectors(sunWorld, targetWorld, 0.90).add(new THREE.Vector3(0, 0.05, 3.2));
+    focusCameraCurve = new THREE.CatmullRomCurve3([p0, p1, p2, p3, finalCamPos], false, "centripetal");
+
+    // Look target sweeps ahead along the line of planets and locks onto the Target Object
+    const l0 = new THREE.Vector3().lerpVectors(sunWorld, targetWorld, 0.35);
+    const l1 = new THREE.Vector3().lerpVectors(sunWorld, targetWorld, 0.68);
+    const l2 = new THREE.Vector3().lerpVectors(sunWorld, targetWorld, 0.95);
+    focusLookCurve = new THREE.CatmullRomCurve3([l0, l1, l2, targetWorld, targetWorld], false, "centripetal");
+
+    camera.position.copy(p0);
+    controls.target.copy(l0);
+    controls.update();
+
+    focusStartTime = performance.now();
+    isFocusingFromSun = true;
+
+    setTimeout(() => {
+      if (typeof onComplete === "function") onComplete();
+    }, focusDurationMs);
   }
 
   // 5. Solar Revolution Animation for Time-Travel Transit
@@ -573,13 +830,37 @@ window.ChronoSky3D = (function () {
     scrollSpinBoost *= 0.92;
     const spinSpeed = 0.0015 + scrollSpinBoost;
 
-    planetMesh.rotation.y += spinSpeed;
-    if (cloudMesh.visible) {
-      cloudMesh.rotation.y += spinSpeed * 1.2;
+    if (milkyWayGroup.visible) {
+      const speedBoost = 1.0 + scrollSpinBoost * 18.0;
+      overviewOrbitingBodies.forEach((b) => {
+        b.angle += b.speed * speedBoost;
+        b.mesh.position.set(Math.cos(b.angle) * b.r, 0.0, Math.sin(b.angle) * b.r);
+        b.mesh.rotation.y += 0.02;
+      });
     }
 
-    if (isMovingPosition) {
-      planetGroup.position.lerp(targetGroupPos, 0.08);
+    if (planetGroup.visible) {
+      planetMesh.rotation.y += spinSpeed;
+    }
+
+    if (solarOrbitGroup.visible) {
+      // Planets stay at their respective orbital positions while rotating gently on their axes
+      corridorPlanetItems.forEach((item) => {
+        if (item.mesh.visible) item.mesh.rotation.y += 0.008;
+      });
+    }
+
+    if (isFocusingFromSun && focusCameraCurve && focusLookCurve) {
+      const elapsed = performance.now() - focusStartTime;
+      const t = Math.min(1.0, elapsed / focusDurationMs);
+      const ease = t < 0.5 ? 4.0 * t * t * t : 1.0 - Math.pow(-2.0 * t + 2.0, 3) / 2.0;
+
+      camera.position.copy(focusCameraCurve.getPointAt(ease));
+      controls.target.copy(focusLookCurve.getPointAt(ease));
+
+      if (t >= 1.0) {
+        isFocusingFromSun = false;
+      }
     }
 
     controls.update();
@@ -651,39 +932,10 @@ window.ChronoSky3D = (function () {
     solarOrbitGroup.visible = true;
 
     const hex = colorHex || 0x00ffff;
-    const earthPos = new THREE.Vector3(-5.8, -1.25, -1.2);
+    const sunStartPos = new THREE.Vector3();
+    sunMesh.getWorldPosition(sunStartPos);
+    const earthPos = sunStartPos.clone();
     const targetArrivalPos = new THREE.Vector3(0.0, -0.15, planetRadius + 0.12);
-
-    // 1. Create 3D Departure Earth Sphere at the start of the trajectory
-    if (!v3OriginEarth) {
-      const eGroup = new THREE.Group();
-      const eSphere = new THREE.Mesh(
-        new THREE.SphereGeometry(0.46, 48, 48),
-        new THREE.MeshStandardMaterial({
-          map: planetBundles.earth.colorMap,
-          roughness: 0.55,
-          metalness: 0.1
-        })
-      );
-      const eAtmo = new THREE.Mesh(
-        new THREE.SphereGeometry(0.51, 32, 32),
-        new THREE.MeshBasicMaterial({
-          color: 0x38bdf8,
-          transparent: true,
-          opacity: 0.32,
-          blending: THREE.AdditiveBlending
-        })
-      );
-      const eLabel = makeTextSprite("EARTH (1.0 AU)", "#38bdf8");
-      eLabel.position.set(0, 0.82, 0);
-      eGroup.add(eSphere);
-      eGroup.add(eAtmo);
-      eGroup.add(eLabel);
-      v3OriginEarth = eGroup;
-      scene.add(v3OriginEarth);
-    }
-    v3OriginEarth.position.copy(earthPos);
-    v3OriginEarth.visible = true;
 
     // 2. Create 3D Spacecraft Probe
     if (!v3Spacecraft) {
