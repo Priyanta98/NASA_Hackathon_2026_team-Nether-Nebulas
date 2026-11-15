@@ -1,48 +1,42 @@
 /* ============================================================================
-   SPHEREx ChronoSky — Professional Observatory UI Stylesheet (style.css)
-   - Dark Mode: Minimalist Bento Grid (#050811 Obsidian, Slate Panels, Sky-Blue Accent)
-   - Light Mode: Frosted Glassmorphism (#EEF2F6 Alabaster, Translucent White Glass)
-   - Zero purple gradients, zero emojis, high readability for beginners
+   SPHEREx ChronoSky — Radial Callout HUD & Observatory Stylesheet (style.css)
+   Matches the exact 4-corner callout card + cyan pointer arrow layout
    ============================================================================ */
 
 :root[data-theme="dark"] {
-  --bg-primary: #050811;
-  --bg-secondary: rgba(11, 18, 33, 0.84);
-  --bg-card: rgba(15, 23, 42, 0.78);
+  --bg-primary: #03060f;
+  --bg-secondary: rgba(9, 15, 28, 0.85);
+  --bg-card: rgba(11, 20, 38, 0.78);
   --bg-card-solid: #0f172a;
   --bg-input: #090f1d;
-  --border-subtle: rgba(148, 163, 184, 0.16);
-  --border-focus: rgba(56, 189, 248, 0.55);
+  --border-subtle: rgba(56, 189, 248, 0.25);
+  --border-focus: rgba(56, 189, 248, 0.65);
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
   --accent-primary: #38bdf8;
   --accent-secondary: #0284c7;
-  --accent-amber: #f59e0b;
-  --accent-emerald: #10b981;
   --btn-primary-bg: #0284c7;
   --btn-primary-text: #ffffff;
-  --shadow-elevated: 0 18px 42px rgba(0, 0, 0, 0.55);
+  --shadow-elevated: 0 16px 38px rgba(0, 0, 0, 0.6);
 }
 
 :root[data-theme="light"] {
   --bg-primary: #eef2f6;
-  --bg-secondary: rgba(255, 255, 255, 0.78);
-  --bg-card: rgba(255, 255, 255, 0.74);
+  --bg-secondary: rgba(255, 255, 255, 0.82);
+  --bg-card: rgba(255, 255, 255, 0.78);
   --bg-card-solid: #ffffff;
   --bg-input: rgba(241, 245, 249, 0.92);
-  --border-subtle: rgba(15, 23, 42, 0.12);
-  --border-focus: rgba(2, 132, 199, 0.55);
+  --border-subtle: rgba(2, 132, 199, 0.28);
+  --border-focus: rgba(2, 132, 199, 0.65);
   --text-primary: #0f172a;
   --text-secondary: #1e293b;
   --text-muted: #475569;
   --accent-primary: #0284c7;
   --accent-secondary: #0369a1;
-  --accent-amber: #d97706;
-  --accent-emerald: #059669;
   --btn-primary-bg: #0284c7;
   --btn-primary-text: #ffffff;
-  --shadow-elevated: 0 16px 36px rgba(15, 23, 42, 0.08);
+  --shadow-elevated: 0 14px 32px rgba(15, 23, 42, 0.10);
 }
 
 * {
@@ -61,7 +55,7 @@ body {
   color: var(--text-primary);
   overflow-x: hidden;
   min-height: 100vh;
-  transition: background-color 0.35s ease, color 0.35s ease;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 h1, h2, h3, h4, .brand-title {
@@ -93,15 +87,15 @@ header.navbar {
   top: 0;
   left: 0;
   right: 0;
-  height: 72px;
-  padding: 0 3.5rem;
+  height: 70px;
+  padding: 0 3.2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: var(--bg-secondary);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
   z-index: 40;
 }
 
@@ -126,7 +120,7 @@ header.navbar {
 .brand-divider {
   width: 1px;
   height: 22px;
-  background: var(--border-subtle);
+  background: rgba(148, 163, 184, 0.25);
 }
 
 .brand-title {
@@ -154,7 +148,7 @@ nav.nav-links {
   font-size: 0.88rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .nav-btn:hover {
@@ -163,7 +157,7 @@ nav.nav-links {
 
 .nav-btn.active {
   color: var(--text-primary);
-  background: rgba(2, 132, 199, 0.14);
+  background: rgba(2, 132, 199, 0.15);
   border-color: var(--border-focus);
 }
 
@@ -192,79 +186,14 @@ nav.nav-links {
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.2s ease;
 }
 
-.theme-toggle:hover {
-  border-color: var(--accent-primary);
-}
-
-/* Warp Speed / Spaceship Transit HUD */
-.warp-hud {
-  position: fixed;
-  inset: 0;
-  z-index: 35;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle at center, transparent 35%, rgba(5, 8, 17, 0.65) 100%);
-}
-
-.warp-telemetry {
-  background: var(--bg-secondary);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--border-focus);
-  border-radius: 14px;
-  padding: 1.5rem 2.2rem;
-  width: min(580px, 92vw);
-  text-align: center;
-  box-shadow: var(--shadow-elevated);
-}
-
-.mono-label {
-  font-size: 0.72rem;
-  letter-spacing: 0.16em;
-  color: var(--accent-primary);
-  display: block;
-  margin-bottom: 0.4rem;
-}
-
-.warp-telemetry h2 {
-  font-size: 1.12rem;
-  margin-bottom: 1rem;
-}
-
-.warp-progress-track {
-  width: 100%;
-  height: 6px;
-  background: var(--border-subtle);
-  border-radius: 999px;
-  overflow: hidden;
-  margin-bottom: 0.75rem;
-}
-
-.warp-progress-fill {
-  height: 100%;
-  width: 0%;
-  background: var(--accent-primary);
-  transition: width 0.08s linear;
-}
-
-.warp-readout {
-  display: flex;
-  justify-content: space-between;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.76rem;
-  color: var(--text-muted);
-}
-
-/* Hero Viewport Section (Clean, No Bottom Clutter) */
+/* Main Viewport Section */
 .viewport-section {
   position: relative;
   z-index: 10;
   min-height: 100vh;
-  padding: 112px 4rem 2.2rem;
+  padding: 96px 4rem 1.6rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -272,10 +201,10 @@ nav.nav-links {
 }
 
 .hero-copy {
-  max-width: 600px;
-  margin-top: 5vh;
+  max-width: 580px;
+  margin-top: 7vh;
   pointer-events: auto;
-  transition: opacity 0.45s ease, transform 0.45s ease;
+  transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
 .eyebrow {
@@ -300,17 +229,17 @@ h1.hero-heading .accent-title {
 }
 
 .hero-subtitle {
-  font-size: 1.45rem;
+  font-size: 1.42rem;
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 0.9rem;
 }
 
 .hero-description {
-  font-size: 1rem;
+  font-size: 0.98rem;
   line-height: 1.65;
   color: var(--text-muted);
-  margin-bottom: 2rem;
+  margin-bottom: 1.9rem;
 }
 
 .hero-actions {
@@ -331,12 +260,6 @@ h1.hero-heading .accent-title {
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-.btn-primary-action:hover {
-  transform: translateY(-2px);
-  background: var(--accent-secondary);
 }
 
 .btn-secondary-action {
@@ -349,136 +272,210 @@ h1.hero-heading .accent-title {
   font-size: 0.86rem;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.2s ease;
 }
 
-.btn-secondary-action:hover {
-  border-color: var(--accent-primary);
+.btn-xs {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.75rem;
 }
 
-/* Target Telemetry Overlay + Multi-Decade Time-Travel Sliding Bar */
-.target-telemetry-overlay {
-  pointer-events: auto;
-  margin-top: auto;
-  margin-bottom: 1.2rem;
-  background: var(--bg-secondary);
-  backdrop-filter: blur(22px);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  padding: 1.3rem 1.6rem;
-  box-shadow: var(--shadow-elevated);
+/* ============================================================================
+   CENTERED PLANET RADIAL CALLOUT HUD (Matches WhatsApp Image 01.03.45.jpeg)
+   ============================================================================ */
+.planet-radial-hud {
+  position: fixed;
+  inset: 70px 0 60px 0;
+  z-index: 15;
+  pointer-events: none;
 }
 
-.telemetry-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+.radial-top-header {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  width: min(920px, 92vw);
 }
 
-.telemetry-header-actions {
-  display: flex;
-  gap: 0.65rem;
-}
-
-.mono-tag {
-  font-size: 0.7rem;
+.radial-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--accent-primary);
-  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #38bdf8;
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.45rem;
+  text-transform: uppercase;
 }
 
-.stagger-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.9rem;
-  margin-bottom: 1.1rem;
+.radial-main-title {
+  font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+  font-weight: 800;
+  color: var(--text-primary);
 }
 
-.stat-reveal-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+/* SVG Cyan Pointer Arrows */
+.radial-arrows-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.callout-line {
+  opacity: 0;
+  animation: fadeInLine 1.1s ease forwards;
+  animation-delay: 0.4s;
+}
+
+@keyframes fadeInLine {
+  to { opacity: 0.88; }
+}
+
+/* 4 Radial Callout Boxes */
+.radial-card {
+  position: absolute;
+  width: 300px;
+  background: rgba(11, 22, 44, 0.76);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(56, 189, 248, 0.45);
   border-radius: 12px;
-  padding: 0.9rem 1rem;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
   opacity: 0;
   transform: translateY(14px);
-  animation: revealStatCard 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: var(--delay, 0.1s);
+  animation: slowRevealCard 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--delay, 0.2s);
 }
 
-@keyframes revealStatCard {
+:root[data-theme="light"] .radial-card {
+  background: rgba(255, 255, 255, 0.84);
+  border-color: rgba(2, 132, 199, 0.55);
+}
+
+@keyframes slowRevealCard {
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.stat-label {
+.card-top-left {
+  top: 28%;
+  left: 3.5%;
+}
+
+.card-bottom-left {
+  bottom: 18%;
+  left: 3.5%;
+}
+
+.card-top-right {
+  top: 28%;
+  right: 3.5%;
+}
+
+.card-bottom-right {
+  bottom: 18%;
+  right: 3.5%;
+}
+
+.rc-label {
   display: block;
-  font-size: 0.74rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
   margin-bottom: 0.3rem;
 }
 
-.stat-value {
+.rc-value {
   display: block;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.28rem;
 }
 
-.stat-note {
+.rc-sub {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+/* Bottom Time-Travel Sliding Bar + Playback Speed Controls */
+.time-travel-bottom-bar {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(740px, 92vw);
+  background: rgba(11, 22, 44, 0.84);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(56, 189, 248, 0.48);
+  border-radius: 12px;
+  padding: 0.65rem 1.15rem;
+  pointer-events: auto;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="light"] .time-travel-bottom-bar {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.tt-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.38rem;
+}
+
+.tt-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.speed-label {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.72rem;
   color: var(--text-muted);
 }
 
-/* *1: Multi-Decade Time-Travel Sliding Bar Console */
-.time-travel-console {
-  background: var(--bg-card);
+.speed-select {
+  background: var(--bg-input);
+  color: var(--accent-primary);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 1rem 1.2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.tt-console-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.tt-console-top h4 {
-  font-size: 0.95rem;
-  color: var(--text-primary);
+  padding: 0.28rem 0.5rem;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .deep-time-slider {
   width: 100%;
-  height: 8px;
+  height: 6px;
   appearance: none;
   background: var(--bg-input);
   border: 1px solid var(--border-focus);
   border-radius: 999px;
   outline: none;
   cursor: pointer;
+  margin-bottom: 0.3rem;
 }
 
 .deep-time-slider::-webkit-slider-thumb {
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--accent-primary);
   border: 2px solid #ffffff;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.65);
   cursor: grab;
 }
 
@@ -486,49 +483,20 @@ h1.hero-heading .accent-title {
   display: flex;
   justify-content: space-between;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   color: var(--text-muted);
 }
 
 .tt-milestone-ticks span {
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border-radius: 4px;
-  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 .tt-milestone-ticks span:hover,
 .tt-milestone-ticks span.active-tick {
   color: var(--accent-primary);
-  background: rgba(2, 132, 199, 0.14);
-}
-
-.timespan-visual-strip {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-}
-
-.ts-node {
-  background: var(--bg-input);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 0.45rem 0.55rem;
-  font-size: 0.72rem;
-  transition: border-color 0.2s ease, transform 0.2s ease;
-}
-
-.ts-node.active {
-  border-color: var(--accent-primary);
-  transform: translateY(-2px);
-}
-
-.ts-node strong {
-  display: block;
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--accent-primary);
-  font-size: 0.74rem;
+  background: rgba(56, 189, 248, 0.14);
 }
 
 /* Downward Scroll Button */
@@ -537,6 +505,8 @@ h1.hero-heading .accent-title {
   display: flex;
   justify-content: center;
   margin-top: auto;
+  position: relative;
+  z-index: 25;
 }
 
 .scroll-down-btn {
@@ -546,33 +516,25 @@ h1.hero-heading .accent-title {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.35rem;
   cursor: pointer;
 }
 
 .scroll-down-text {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.05em;
   color: var(--text-muted);
 }
 
 .scroll-capsule {
-  width: 30px;
-  height: 46px;
+  width: 28px;
+  height: 42px;
   border-radius: 999px;
   border: 1.5px solid var(--border-subtle);
   background: var(--bg-card);
-  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.2s ease, transform 0.2s ease;
-}
-
-.scroll-down-btn:hover .scroll-capsule {
-  border-color: var(--accent-primary);
-  transform: translateY(4px);
 }
 
 /* Stage 2: Details & Expandable 3D Analysis Section */
@@ -581,10 +543,8 @@ h1.hero-heading .accent-title {
   z-index: 20;
   background: var(--bg-secondary);
   backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
   border-top: 1px solid var(--border-subtle);
   padding: 4.5rem 4rem 5rem;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .details-container {
@@ -630,40 +590,26 @@ h1.hero-heading .accent-title {
   font-size: 0.98rem;
 }
 
-.beginner-explainer-grid {
+.beginner-explainer-grid,
+.analysis-bento-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.4rem;
 }
 
-.explainer-card {
+.explainer-card,
+.analysis-card,
+.table-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
-  padding: 1.5rem;
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
   box-shadow: var(--shadow-elevated);
 }
 
-.step-index {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--accent-primary);
-  margin-bottom: 0.55rem;
-}
-
-.explainer-card h3 {
-  font-size: 1.08rem;
-  margin-bottom: 0.5rem;
-}
-
-.explainer-card p {
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: var(--text-muted);
-}
-
-/* Control Bar */
 .control-bar-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -709,22 +655,11 @@ h1.hero-heading .accent-title {
   gap: 0.75rem;
 }
 
-/* Analysis Bento Grid */
-.analysis-bento-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.4rem;
-}
-
-.analysis-card, .table-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  padding: 1.4rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  box-shadow: var(--shadow-elevated);
+.step-index {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-primary);
 }
 
 .card-top-row {
@@ -732,10 +667,6 @@ h1.hero-heading .accent-title {
   justify-content: space-between;
   align-items: flex-start;
   gap: 0.75rem;
-}
-
-.card-top-row h3 {
-  font-size: 1.04rem;
 }
 
 .expand-3d-btn {
@@ -748,12 +679,6 @@ h1.hero-heading .accent-title {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.expand-3d-btn:hover {
-  background: var(--btn-primary-bg);
-  color: #ffffff;
 }
 
 .card-plain-desc {
@@ -762,7 +687,6 @@ h1.hero-heading .accent-title {
   color: var(--text-muted);
 }
 
-/* Heatmap, Spectrum & Falsification Bars */
 .heatmap-container {
   display: flex;
   flex-direction: column;
@@ -849,7 +773,6 @@ h1.hero-heading .accent-title {
   color: var(--text-secondary);
 }
 
-/* Candidate Table */
 .export-buttons {
   display: flex;
   gap: 0.5rem;
@@ -865,23 +788,16 @@ h1.hero-heading .accent-title {
 .clean-table th,
 .clean-table td {
   padding: 0.75rem 0.85rem;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
   text-align: left;
 }
 
 .clean-table th {
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: var(--text-muted);
 }
 
-.clean-table tr:hover {
-  background: rgba(2, 132, 199, 0.08);
-  cursor: pointer;
-}
-
-/* Modal for Expandable 3D Graphs (Requirement 11) */
 .modal-3d-backdrop {
   position: fixed;
   inset: 0;
@@ -917,13 +833,4 @@ h1.hero-heading .accent-title {
   height: 520px;
   border-radius: 12px;
   overflow: hidden;
-}
-
-@media (max-width: 1024px) {
-  .stagger-grid,
-  .beginner-explainer-grid,
-  .analysis-bento-grid,
-  .timespan-visual-strip {
-    grid-template-columns: 1fr;
-  }
 }

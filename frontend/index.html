@@ -9,32 +9,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <!-- Three.js r128 + OrbitControls + Plotly 3D for Expandable 3D Graphs -->
+  <!-- Three.js r128 + OrbitControls + Plotly 3D -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
 <body>
 
-  <!-- Full-Screen 3D WebGL Space Canvas (Real NASA Earth, Real Planetary Orbits, Milky Way Warp) -->
+  <!-- Full-Screen 3D WebGL Space Canvas -->
   <div id="space-canvas"></div>
 
-  <!-- Warp Speed / Interstellar Spaceship Transit HUD Overlay -->
-  <div id="warp-hud" class="warp-hud hidden">
-    <div class="warp-telemetry">
-      <span class="mono-label">REAL-TIME INTERSTELLAR TRANSIT</span>
-      <h2 id="warp-target-name">NAVIGATING TO TARGET COORDINATES: RA 304.7024° • DEC +42.4489°</h2>
-      <div class="warp-progress-track">
-        <div id="warp-progress-bar" class="warp-progress-fill"></div>
-      </div>
-      <div class="warp-readout">
-        <span id="warp-distance-counter">HELIOCENTRIC DISTANCE: 1.0 AU</span>
-        <span id="warp-velocity-counter">MILKY WAY TRANSIT VECTOR LOCKED</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Top Navigation Bar (Clean, Professional, Zero Purple/Neon, Light/Dark Toggle) -->
+  <!-- Top Navigation Bar -->
   <header class="navbar">
     <div class="brand">
       <div class="brand-mark">NASA / IRSA</div>
@@ -50,12 +35,12 @@
     </nav>
 
     <div class="nav-actions">
-      <select id="collection-select" class="clean-select" onchange="updateActiveCollection(this.value)">
-        <option value="spherex_dr1" selected>SPHEREx DR1 (Wide Survey)</option>
-        <option value="spherex_qr3">SPHEREx QR3 (Wide Survey)</option>
-        <option value="spherex_dr1_deep">SPHEREx DR1 (Deep Field)</option>
-        <option value="spherex_qr3_deep">SPHEREx QR3 (Deep Field)</option>
-        <option value="spherex_dr1_cube">SPHEREx DR1 (All-Sky Cube)</option>
+      <select id="planet-switcher" class="clean-select" onchange="switchPlanetTarget(this.value)">
+        <option value="spx_trk_002" selected>SPX-TRK-002 (Centaur 5–30 AU)</option>
+        <option value="spx_trk_001">SPX-TRK-001 (Scattered Disk 50–100 AU)</option>
+        <option value="mars">Mars (1.52 AU)</option>
+        <option value="jupiter">Jupiter (5.20 AU)</option>
+        <option value="neptune">Neptune (30.1 AU)</option>
       </select>
       <button id="theme-toggle-btn" class="theme-toggle" onclick="toggleColorTheme()">
         <span id="theme-label">Light Mode</span>
@@ -64,10 +49,15 @@
   </header>
 
   <!-- =========================================================================
-       STAGE 1: CLEAN HERO VIEWPORT (Real Revolving Earth + Far Sky Stars Only)
+       STAGE 1: MAIN VIEWPORT
+       - Overview Mode: Hero text on left + Revolving Earth on right
+       - Start Exploring / Time-Travel Mode: Centered Respective 3D Planet with
+         Real 3D Craters/Troughs/Crests + 4 Callout Cards with Cyan Pointer Arrows
        ========================================================================= -->
   <main id="main-scroll-container">
     <section id="hero-section" class="viewport-section">
+
+      <!-- Overview Left Hero Text -->
       <div id="hero-copy-box" class="hero-copy">
         <div class="eyebrow">NASA SPACE APPS CHALLENGE • CALTECH / IPAC ARCHIVE</div>
         <h1 class="hero-heading">
@@ -77,8 +67,8 @@
         <p class="hero-subtitle">Observe. Validate. Map the Outer Solar System.</p>
         <p class="hero-description">
           An astrometric and infrared spectral platform powered by live NASA/IPAC SPHEREx
-          observations. Travel across real planetary orbits, track moving solar-system bodies
-          across decades, and verify candidate trajectories with transparent physics.
+          observations. Travel to candidate worlds, inspect their motion-corrected infrared
+          spectra, and verify trajectories across decades.
         </p>
 
         <div class="hero-actions">
@@ -90,90 +80,116 @@
             </svg>
           </button>
           <button class="btn-secondary-action" onclick="startTimeTravelTransit()">
-            Launch Time-Travel Transit
+            Time-Travel Transit
           </button>
         </div>
       </div>
 
-      <!-- Target Planet / Candidate Live Telemetry + 50-Year Deep-Time Sliding Bar (Requirements 6, 9, *1) -->
-      <div id="target-telemetry-overlay" class="target-telemetry-overlay hidden">
-        <div class="telemetry-header">
-          <div>
-            <span class="mono-tag" id="target-tier-label">TIER 3 VETTED TRAJECTORY • REAL ORBITAL VIEW</span>
-            <h2 id="target-heading">Candidate SPX-TRK-001 (Scattered Disk Orbit)</h2>
-          </div>
-          <div class="telemetry-header-actions">
-            <button class="btn-secondary-action" onclick="open3DGraphModal('timespan')">Expand 3D Time-Span Map ⤢</button>
-            <button class="btn-secondary-action" onclick="returnToEarthView()">Return to Earth Orbit</button>
-          </div>
+      <!-- =====================================================================
+           CENTERED PLANET RADIAL CALLOUT HUD (Exact Match to Uploaded Image)
+           Shown in Start Exploring & Time-Travel Transit Tabs
+           ===================================================================== -->
+      <div id="planet-radial-hud" class="planet-radial-hud hidden">
+
+        <!-- Top Centered Title Block -->
+        <div class="radial-top-header">
+          <span class="radial-eyebrow" id="target-tier-label">TIER 3 VETTED TRAJECTORY &nbsp;•&nbsp; REAL ORBITAL VIEW</span>
+          <h2 class="radial-main-title" id="target-heading">
+            SPX-TRK-002 (Centaur / Giant-Planet Crossing Regime (5–30 AU))
+          </h2>
         </div>
 
-        <!-- Staggered Appearing Telemetry Cards (Requirement 9) -->
-        <div id="stagger-stats-container" class="stagger-grid">
-          <div class="stat-reveal-card" style="--delay: 0.12s">
-            <span class="stat-label">Sky Coordinates (J2000)</span>
-            <strong class="stat-value" id="stat-coords">RA 304.7024° • Dec +42.4489°</strong>
-            <small class="stat-note" id="stat-epoch-archive">Archive: SPHEREx DR1 / QR3 (2026.8)</small>
-          </div>
-          <div class="stat-reveal-card" style="--delay: 0.28s">
-            <span class="stat-label">Apparent Angular Drift</span>
-            <strong class="stat-value" id="stat-velocity">2.46 ± 0.14 arcsec / day</strong>
-            <small class="stat-note">Keplerian + Solar-Elongation Parallax</small>
-          </div>
-          <div class="stat-reveal-card" style="--delay: 0.44s">
-            <span class="stat-label">Heliocentric Distance (68% CI)</span>
-            <strong class="stat-value" id="stat-distance">58.2 – 74.6 AU (Median 65.4 AU)</strong>
-            <small class="stat-note" id="stat-regime">Scattered Disk / Detached Regime (50–100 AU)</small>
-          </div>
-          <div class="stat-reveal-card" style="--delay: 0.60s">
-            <span class="stat-label">Infrared Surface Signature</span>
-            <strong class="stat-value" id="stat-spectrum">3.1 μm H₂O / CH₄ Ice Absorption</strong>
-            <small class="stat-note">+24.2% SNR gain via motion-tracked aperture</small>
-          </div>
+        <!-- SVG Cyan Pointer Arrows Connecting the 4 Cards to the Centered Planet -->
+        <svg class="radial-arrows-svg" viewBox="0 0 1440 820" preserveAspectRatio="none">
+          <defs>
+            <marker id="cyan-arrowhead" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto">
+              <polygon points="0 0, 9 3.5, 0 7" fill="#38bdf8" />
+            </marker>
+          </defs>
+          <!-- Top-Left Card -> Planet Upper-Left Limb -->
+          <line class="callout-line line-1" x1="330" y1="295" x2="548" y2="375" stroke="#38bdf8" stroke-width="2.2" marker-end="url(#cyan-arrowhead)" />
+          <!-- Bottom-Left Card -> Planet Lower-Left Limb -->
+          <line class="callout-line line-2" x1="330" y1="595" x2="548" y2="520" stroke="#38bdf8" stroke-width="2.2" marker-end="url(#cyan-arrowhead)" />
+          <!-- Top-Right Card -> Planet Upper-Right Limb -->
+          <line class="callout-line line-3" x1="1110" y1="295" x2="892" y2="375" stroke="#38bdf8" stroke-width="2.2" marker-end="url(#cyan-arrowhead)" />
+          <!-- Bottom-Right Card -> Planet Lower-Right Limb -->
+          <line class="callout-line line-4" x1="1110" y1="595" x2="892" y2="520" stroke="#38bdf8" stroke-width="2.2" marker-end="url(#cyan-arrowhead)" />
+        </svg>
+
+        <!-- 1. Top-Left Callout Box: Sky Coordinates (J2000) -->
+        <div class="radial-card card-top-left" style="--delay: 0.15s">
+          <span class="rc-label">Sky Coordinates (J2000)</span>
+          <strong class="rc-value" id="stat-coords">RA 293.8477° • Dec +33.7879°</strong>
+          <small class="rc-sub" id="stat-epoch-archive">NASA WISE All-Sky (6.8σ (W1/W2 Track))</small>
         </div>
 
-        <!-- *1: Eye-Catching Multi-Decade Time-Travel Sliding Bar (2000 – 2045) -->
-        <div class="time-travel-console">
-          <div class="tt-console-top">
-            <div>
-              <span class="mono-tag">MULTI-DECADE DEEP-TIME ORBITAL SCRUBBER (2000 – 2045)</span>
-              <h4 id="tt-live-year-readout">Epoch Year: 2026.8 (MJD 61365) • Active Survey: NASA SPHEREx DR1/QR3</h4>
-            </div>
-            <div class="tt-playback-btns">
-              <button class="btn-secondary-action" onclick="toggleTimeSpanPlayback()" id="tt-play-btn">Play 45-Year Orbit</button>
+        <!-- 2. Bottom-Left Callout Box: Heliocentric Distance (68% CI) -->
+        <div class="radial-card card-bottom-left" style="--delay: 0.40s">
+          <span class="rc-label">Heliocentric Distance (68% CI)</span>
+          <strong class="rc-value" id="stat-distance">21.5 – 29.2 AU (Median 25.3 AU)</strong>
+          <small class="rc-sub" id="stat-regime">Centaur / Giant-Planet Crossing Regime (5–30 AU)</small>
+        </div>
+
+        <!-- 3. Top-Right Callout Box: Infrared Surface Signature -->
+        <div class="radial-card card-top-right" style="--delay: 0.65s">
+          <span class="rc-label">Infrared Surface Signature</span>
+          <strong class="rc-value" id="stat-spectrum">3.1 μm H₂O / CH₄ Ice Absorption</strong>
+          <small class="rc-sub" id="stat-snr-note">+24.2% SNR gain via motion-tracked aperture</small>
+        </div>
+
+        <!-- 4. Bottom-Right Callout Box: Apparent Angular Drift -->
+        <div class="radial-card card-bottom-right" style="--delay: 0.90s">
+          <span class="rc-label">Apparent Angular Drift</span>
+          <strong class="rc-value" id="stat-velocity">6.65 ± 0.0262 arcsec / day</strong>
+          <small class="rc-sub">Keplerian + Solar-Elongation Parallax</small>
+        </div>
+
+        <!-- Bottom Time-Travel Sliding Bar + Playback Speed Controls (Shown in Time-Travel Transit Tab) -->
+        <div id="time-travel-bottom-bar" class="time-travel-bottom-bar hidden">
+          <div class="tt-bar-header">
+            <span class="mono-tag" id="tt-live-year-readout">EPOCH YEAR: 2026.8 (MJD 61365) • ORBITING THE SUN</span>
+            <div class="tt-controls-group">
+              <label class="speed-label" for="tt-speed-select">Speed:</label>
+              <select id="tt-speed-select" class="speed-select" onchange="setPlaybackSpeed(this.value)">
+                <option value="0.25">0.25×</option>
+                <option value="0.5">0.5×</option>
+                <option value="1" selected>1.0×</option>
+                <option value="2">2.0×</option>
+                <option value="5">5.0×</option>
+                <option value="10">10.0×</option>
+              </select>
+              <button class="btn-secondary-action btn-xs" onclick="toggleTimeSpanPlayback()" id="tt-play-btn">
+                ▶ Play Solar Orbit
+              </button>
             </div>
           </div>
-
           <input
             id="deep-time-slider"
             class="deep-time-slider"
             type="range"
             min="2000"
             max="2045"
-            step="0.2"
+            step="0.05"
             value="2026.8"
             oninput="scrubDeepTimeSpan(this.value)"
           />
-
           <div class="tt-milestone-ticks">
-            <span onclick="scrubDeepTimeSpan(2000)">2000 (DSS/2MASS)</span>
+            <span onclick="scrubDeepTimeSpan(2000)">2000 (2MASS)</span>
             <span onclick="scrubDeepTimeSpan(2010.5)">2010 (WISE)</span>
             <span onclick="scrubDeepTimeSpan(2016.0)">2016 (Pan-STARRS)</span>
             <span onclick="scrubDeepTimeSpan(2020.5)">2020 (Gaia DR3)</span>
-            <span class="active-tick" onclick="scrubDeepTimeSpan(2026.8)">2026 (SPHEREx DR1/QR3)</span>
-            <span onclick="scrubDeepTimeSpan(2035.0)">2035 (Predicted Arc)</span>
+            <span class="active-tick" onclick="scrubDeepTimeSpan(2026.8)">2026 (SPHEREx)</span>
+            <span onclick="scrubDeepTimeSpan(2035.0)">2035 (Predicted)</span>
             <span onclick="scrubDeepTimeSpan(2045.0)">2045 (Extrapolated)</span>
           </div>
-
-          <!-- Eye-Catching Long-Timespan Astrometric Drift & Flux Strip -->
-          <div id="timespan-visual-strip" class="timespan-visual-strip"></div>
         </div>
+
       </div>
 
-      <!-- Downward Scroll Arrow (Same Smooth Upward Motion + Fast Axial Rotation on Both Views) -->
+      <!-- Downward Scroll Arrow -->
       <div class="scroll-down-wrap">
         <button class="scroll-down-btn" onclick="scrollToDetailsWithSpin()" aria-label="Scroll down to Mission Details">
-          <span class="scroll-down-text">Scroll for Full Mission Details &amp; 3D Expandable Charts</span>
+          <span class="scroll-down-text">Scroll for Mission Details &amp; Expandable 3D Charts</span>
           <div class="scroll-capsule">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -190,7 +206,6 @@
     <section id="details-section" class="details-section">
       <div class="details-container">
 
-        <!-- Scientific Scope Notice -->
         <div class="scope-notice-card">
           <div class="scope-badge">SCIENTIFIC SCOPE</div>
           <p>
@@ -200,11 +215,10 @@
           </p>
         </div>
 
-        <!-- Beginner-Friendly Plain-English Guide -->
         <div class="section-header-block">
           <span class="mono-tag">MISSION GUIDE FOR EVERYONE</span>
           <h2>How We Track Distant Solar-System Worlds</h2>
-          <p>Clear, step-by-step physics explaining how SPHEREx spots moving objects in the outer Solar System.</p>
+          <p>Clear, step-by-step physics explaining how SPHEREx spots moving objects in our Solar System.</p>
         </div>
 
         <div class="beginner-explainer-grid">
@@ -239,31 +253,29 @@
           </article>
         </div>
 
-        <!-- Interactive Target & Real Planetary Orbit Selector Bar -->
+        <!-- Full Interactive Coordinate, Survey Collection & Target Planet Selector Bar -->
         <div class="control-bar-card">
           <div class="control-inputs">
             <div class="field-group">
               <label for="inp-ra">Right Ascension (0°–360°)</label>
-              <input id="inp-ra" type="number" step="0.01" min="0" max="360" value="304.69" />
+              <input id="inp-ra" type="number" step="0.01" min="0" max="360" value="293.85" />
             </div>
             <div class="field-group">
               <label for="inp-dec">Declination (-90°–90°)</label>
-              <input id="inp-dec" type="number" step="0.01" min="-90" max="90" value="42.44" />
+              <input id="inp-dec" type="number" step="0.01" min="-90" max="90" value="33.79" />
             </div>
             <div class="field-group">
               <label for="inp-rad">Search Radius (arcsec)</label>
               <input id="inp-rad" type="number" step="50" min="60" max="3600" value="600" />
             </div>
             <div class="field-group">
-              <label for="orbit-preset">Travel to Real Planetary Orbit</label>
-              <select id="orbit-preset" onchange="flyToPlanetaryOrbit(this.value)">
-                <option value="earth">Earth (1.00 AU Real Orbit)</option>
-                <option value="mars">Mars (1.52 AU Real Orbit)</option>
-                <option value="jupiter">Jupiter (5.20 AU Real Orbit)</option>
-                <option value="saturn">Saturn (9.58 AU Real Orbit)</option>
-                <option value="uranus">Uranus (19.20 AU Real Orbit)</option>
-                <option value="neptune">Neptune (30.05 AU Real Orbit)</option>
-                <option value="candidate" selected>Candidate SPX-TRK-001 (58–74 AU Scattered Disk)</option>
+              <label for="collection-select">SPHEREx Archive Collection</label>
+              <select id="collection-select" onchange="runFullRegionAnalysis()">
+                <option value="spherex_dr1" selected>SPHEREx DR1 (Wide Survey)</option>
+                <option value="spherex_qr3">SPHEREx QR3 (Wide Survey)</option>
+                <option value="spherex_dr1_deep">SPHEREx DR1 (Deep Field)</option>
+                <option value="spherex_qr3_deep">SPHEREx QR3 (Deep Field)</option>
+                <option value="spherex_dr1_cube">SPHEREx DR1 (All-Sky Cube)</option>
               </select>
             </div>
           </div>
@@ -273,10 +285,9 @@
           </div>
         </div>
 
-        <!-- Expandable Analysis Bento Grid (Every Graph Expands into a 3D Interactive Plot) -->
+        <!-- Expandable Analysis Bento Grid -->
         <div class="analysis-bento-grid">
 
-          <!-- Card A: Credibility & Completeness Map -->
           <div class="analysis-card">
             <div class="card-top-row">
               <div>
@@ -294,7 +305,6 @@
             <div id="completeness-grid" class="heatmap-container"></div>
           </div>
 
-          <!-- Card B: Motion-Corrected Infrared Spectrum -->
           <div class="analysis-card">
             <div class="card-top-row">
               <div>
@@ -312,7 +322,6 @@
             <div id="spectrum-chart" class="spectrum-chart"></div>
           </div>
 
-          <!-- Card C: Devil's Advocate Falsification & Multi-Decade Drift -->
           <div class="analysis-card">
             <div class="card-top-row">
               <div>
@@ -357,7 +366,7 @@
                 <th>Distance from Sun (68% CI)</th>
                 <th>Orbital Region</th>
                 <th>Confidence</th>
-                <th>Space Transit</th>
+                <th>Inspect Planet</th>
               </tr>
             </thead>
             <tbody id="candidates-tbody"></tbody>
@@ -368,9 +377,7 @@
     </section>
   </main>
 
-  <!-- =========================================================================
-       MODAL: EXPANDED INTERACTIVE 3D GRAPH VIEWER (Requirement 11)
-       ========================================================================= -->
+  <!-- MODAL: EXPANDED INTERACTIVE 3D GRAPH VIEWER -->
   <div id="modal-3d-graph" class="modal-3d-backdrop hidden">
     <div class="modal-3d-card">
       <div class="modal-3d-header">
