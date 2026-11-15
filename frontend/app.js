@@ -273,7 +273,8 @@ function applyProfileToRadialCards(planetKey) {
   const p = PLANET_PROFILES[planetKey] || PLANET_PROFILES.spx_trk_002;
   document.getElementById("target-tier-label").textContent = p.tierLabel;
   document.getElementById("target-heading").textContent = p.heading;
-  document.getElementById("stat-coords").textContent = `RA ${p.ra.toFixed(4)}° • Dec +${p.dec.toFixed(4)}°`;
+  const decSign = p.dec >= 0 ? "+" : "";
+  document.getElementById("stat-coords").textContent = `RA ${p.ra.toFixed(4)}° • Dec ${decSign}${p.dec.toFixed(4)}°`;
   document.getElementById("stat-epoch-archive").textContent = p.archive;
   document.getElementById("stat-distance").textContent = p.distance;
   document.getElementById("stat-regime").textContent = p.regime;
@@ -545,7 +546,26 @@ async function loadValidationBenchmark() {
 }
 
 async function runFullRegionAnalysis() {
-  const data = OFFLINE_ANALYSIS_FALLBACK;
+  let data = OFFLINE_ANALYSIS_FALLBACK;
+  const raEl = document.getElementById("inp-ra");
+  const decEl = document.getElementById("inp-dec");
+  const radEl = document.getElementById("inp-rad");
+  const colEl = document.getElementById("collection-select");
+  const ra = raEl ? raEl.value : 293.85;
+  const dec = decEl ? decEl.value : 33.79;
+  const rad = radEl ? radEl.value : 600;
+  const col = colEl ? colEl.value : "spherex_dr1";
+
+  try {
+    const res = await fetch(`/api/analyze-region?ra=${ra}&dec=${dec}&radius_arcsec=${rad}&collection=${col}`);
+    if (res.ok) {
+      const liveData = await res.json();
+      if (liveData && Array.isArray(liveData.candidates) && liveData.candidates.length > 0) {
+        data = liveData;
+      }
+    }
+  } catch (_) {}
+
   currentAnalysis = data;
   const cands = data.candidates;
 
@@ -568,7 +588,8 @@ async function runFullRegionAnalysis() {
 }
 
 function selectCandidateRow(index) {
-  const c = OFFLINE_ANALYSIS_FALLBACK.candidates[index] || OFFLINE_ANALYSIS_FALLBACK.candidates[0];
+  const list = (currentAnalysis && currentAnalysis.candidates) ? currentAnalysis.candidates : OFFLINE_ANALYSIS_FALLBACK.candidates;
+  const c = list[index] || list[0];
   const pKey = c.planet_key || "spx_trk_002";
   document.getElementById("planet-switcher").value = pKey;
   switchPlanetTarget(pKey);
@@ -681,6 +702,7 @@ async function updateV3Navigator() {
     { x: 0.0, y: 1.45, z: 2.95 },
     { x: 2.3 * scale, y: 0.35, z: 2.3 }
   ];
+  renderMissionDetailedGuide("navigator");
   if (window.ChronoSky3D && window.ChronoSky3D.runCatmullApproach) {
     window.ChronoSky3D.runCatmullApproach(localWaypoints, 0x00ffff);
   }
@@ -716,8 +738,10 @@ async function updateV3Interstellar() {
   document.getElementById("target-tier-label").textContent = "MISSION 6  •  INTERSTELLAR OBJECT HUNTER";
   document.getElementById("stat-velocity").textContent = `v∞ = ${vinf} km/s (e = ${ecc})`;
   document.getElementById("stat-regime").textContent = `${orbitClass} • Origin Prob ${prob}%`;
+  renderMissionDetailedGuide("interstellar");
 
   // High-inclination hyperbolic flyby trajectory in gold/amber
+  renderMissionDetailedGuide("navigator");
   if (window.ChronoSky3D && window.ChronoSky3D.runCatmullApproach) {
     window.ChronoSky3D.runCatmullApproach(
       [
@@ -759,6 +783,14 @@ async function updateV3Ocean() {
 
   const iceBadge = document.getElementById("ice-class-badge");
   if (iceBadge) iceBadge.textContent = info.cls;
+  renderMissionDetailedGuide("ocean");
+  if (window.ChronoSky3D && window.ChronoSky3D.runCatmullApproach) {
+    window.ChronoSky3D.runCatmullApproach([
+      { x: -4.2, y: 0.6, z: 0.9 },
+      { x: -2.0, y: 1.25, z: 2.1 },
+      { x: -0.7, y: 0.55, z: 2.5 }
+    ], 0x38bdf8);
+  }
 
   try {
     const surf = val.includes("CH4") ? "CH4" : val.includes("CO2") ? "CO2" : "H2O";
@@ -780,6 +812,14 @@ async function updateV3MultiSurvey() {
 
   document.getElementById("target-tier-label").textContent = "MISSION 8  •  MULTI-SURVEY CONSENSUS (97%)";
   document.getElementById("stat-epoch-archive").textContent = "SPHEREx + ZTF + TESS + NEOWISE Consensus: 97%";
+  renderMissionDetailedGuide("multi");
+  if (window.ChronoSky3D && window.ChronoSky3D.runCatmullApproach) {
+    window.ChronoSky3D.runCatmullApproach([
+      { x: -4.0, y: 0.75, z: 1.0 },
+      { x: -1.9, y: 1.3, z: 2.2 },
+      { x: -0.6, y: 0.6, z: 2.55 }
+    ], 0x10b981);
+  }
 
   try {
     const r = await fetch("/api/cross-survey-consensus?candidate_id=SPX-TRK-001");
@@ -811,104 +851,129 @@ async function requestNextReview() {
 
 
 const MISSION_DETAILED_GUIDES = {
-  navigator: {
-    eyebrow: "MISSION 5 • APPROACH NAVIGATOR DEEP DIVE",
-    title: "Standoff Distance, Light-Time Delay & Resolution Gain",
-    subtitle: "How SPHEREx optimizes observation geometry as a spacecraft approaches a distant target.",
-    cards: [
-      {
-        step: "PHYSICS 01",
-        title: "Standoff Distance Optimization",
-        body: "Using SPHEREx's 6.15 arcsec/pixel detector scale and the zodiacal background floor (0.18 MJy/sr), the standoff formula balances target flux against desired SNR so the body subtends >= 1 pixel cleanly."
-      },
-      {
-        step: "PHYSICS 02",
-        title: "Retarded Light-Time Telemetry",
-        body: "Light travels at 299,792.458 km/s (~499 seconds per AU). At 12 AU, photons take ~1h 40m to reach us, so the target is observed at an earlier retarded Modified Julian Date (MJD)."
-      },
-      {
-        step: "PHYSICS 03",
-        title: "Quadratic Resolution Gain (× N)",
-        body: "Halving the observer-to-target distance quadruples spatial sampling density: Resolution Gain = (d_baseline / d_standoff)^2, rendered along the centripetal Catmull-Rom 3D spline."
-      }
-    ]
+  navigator: () => {
+    const standoff = Number((document.getElementById("v3-standoff-slider") || {}).value || 12);
+    const exp = Number((document.getElementById("v3-exposure-slider") || {}).value || 1800);
+    const ticker = (document.getElementById("v3-light-time-ticker") || {}).textContent || "Delay: 1h 39m 48s";
+    const resGain = ((25.3 / Math.max(1, standoff)) ** 2).toFixed(2);
+    const tcaDays = (Math.abs(25.3 - standoff) / 0.0173).toFixed(1);
+    return {
+      eyebrow: "MISSION 5 • APPROACH NAVIGATOR EXPLAINED",
+      title: `Live Approach Telemetry at ${standoff} AU Standoff`,
+      subtitle: "Plain-language breakdown of your current Approach Navigator settings.",
+      cards: [
+        {
+          step: `STANDOFF: ${standoff} AU`,
+          title: "Why This Observation Distance?",
+          body: `At ${standoff} AU, the spacecraft sits close enough that the target spans at least 1 SPHEREx pixel (6.15 arcsec/px) above the zodiacal dust floor (0.18 MJy/sr), giving a ${resGain}× sharper spatial resolution than from Earth's 25.3 AU baseline.`
+        },
+        {
+          step: "LIGHT-TIME DELAY",
+          title: "What the Retarded MJD Means",
+          body: `${ticker}. Because light travels at 299,792 km/s (~499 seconds per AU), we always see the target as it looked when those photons left its surface.`
+        },
+        {
+          step: `EXPOSURE: ${exp} s`,
+          title: "Transit & Integration Gain",
+          body: `Reaching ${standoff} AU takes ~${tcaDays} days along the cyan Catmull-Rom trajectory. Integrating for ${exp} seconds boosts signal-to-noise by ${(Math.sqrt(exp / 600)).toFixed(2)}×.`
+        }
+      ]
+    };
   },
-  interstellar: {
-    eyebrow: "MISSION 6 • INTERSTELLAR OBJECT HUNTER DEEP DIVE",
-    title: "Vis-Viva Escape Velocity & Hyperbolic Vetting",
-    subtitle: "Distinguishing unbound interstellar visitors (e >= 1) from bound Solar System bodies.",
-    cards: [
-      {
-        step: "KINEMATICS 01",
-        title: "Vis-Viva & Local Escape Speed",
-        body: "From v^2 = GM(2/r - 1/a), any object exceeding v_esc = sqrt(2GM/r) at heliocentric distance r has negative semi-major axis a < 0 and eccentricity e >= 1, proving it is gravitationally unbound."
-      },
-      {
-        step: "VETTING 02",
-        title: "Devil's Advocate Origin Scoring",
-        body: "Candidates with proper motion > 50 arcsec/day, e > 0.98, and excess speed v_inf > 20 km/s receive high interstellar_origin_prob (> 70%), while Gaia DR3 stars (> 50 mas/yr) are automatically deboosted."
-      },
-      {
-        step: "SIMULATION 03",
-        title: "Non-Gravitational Acceleration",
-        body: "Synthetic MEF injections test recovery of 'Oumuamua-like trajectories (v_inf ~ 26.5 km/s) across arbitrary inclination angles and outgassing acceleration terms."
-      }
-    ]
+  interstellar: () => {
+    const vinf = Number((document.getElementById("v3-vinf-slider") || {}).value || 26.5);
+    const readout = (document.getElementById("v3-iso-readout") || {}).textContent || "";
+    const vEsc = 27.2;
+    const vTot = Math.sqrt(vinf * vinf + vEsc * vEsc).toFixed(1);
+    const ecc = (1.0 + (vinf * vinf) / (vEsc * vEsc * 0.65)).toFixed(4);
+    const isUnbound = vinf > 0.5;
+    return {
+      eyebrow: "MISSION 6 • INTERSTELLAR OBJECT HUNTER EXPLAINED",
+      title: `Live Hyperbolic Kinematics (v∞ = ${vinf} km/s)`,
+      subtitle: "How SPHEREx proves whether a fast-moving object came from outside our Solar System.",
+      cards: [
+        {
+          step: `ECCENTRICITY: e = ${ecc}`,
+          title: isUnbound ? "Unbound Hyperbolic Orbit (e >= 1)" : "Bound Elliptical Orbit (e < 1)",
+          body: `${readout}. An eccentricity below 1.0 means the Sun's gravity holds the object in a closed loop. Above 1.0, its path is an open hyperbola — it is passing through once and will never return.`
+        },
+        {
+          step: `TOTAL SPEED: ${vTot} km/s`,
+          title: "Beating Solar Escape Velocity",
+          body: `At 2.4 AU from the Sun, any object moving faster than 27.2 km/s escapes the Sun's gravity. With excess speed v∞ = ${vinf} km/s, this body travels at ${vTot} km/s total.`
+        },
+        {
+          step: "DEVIL'S ADVOCATE CHECK",
+          title: "Ruling Out Background Stars",
+          body: "Fast proper motion (> 50 arcsec/day) and e > 0.98 raise Interstellar Origin Probability above 90%, while Gaia DR3 cross-checks automatically reject stationary or high-PM background stars."
+        }
+      ]
+    };
   },
-  ocean: {
-    eyebrow: "MISSION 7 • ICY OCEAN WORLD SPECTROSCOPIST DEEP DIVE",
-    title: "Beer-Lambert Ice Attenuation & Subsurface Ocean Signatures",
-    subtitle: "How 0.75–5.0 μm infrared absorption bands reveal layered surface ices and subsurface brines.",
-    cards: [
-      {
-        step: "SPECTRA 01",
-        title: "Beer-Lambert Ice Shell Attenuation",
-        body: "Infrared sunlight penetrates the overlying ice shell (thickness d) and attenuates as R(λ) = R0 * exp(-α(λ) * τ), carving sharp absorption dips at 1.50, 2.02, and 3.05 μm for H2O ice."
-      },
-      {
-        step: "OCEAN 02",
-        title: "2.25 μm Brine & >3 μm Thermal Plateau",
-        body: "Subsurface liquid oceans introduce hydrated brine pocket absorption near 2.25 μm and elevate thermal continuum emission beyond 3.0 μm scaled by surface temperature (K)."
-      },
-      {
-        step: "CLASSIFIER 03",
-        title: "6-Class Layered Ice Taxonomy",
-        body: "SPHEREx LVF Bands 1–6 separate H2O Surface Ice, CH4 Clathrate Deep (1.66/2.32 μm), CO2 Ice Cap (4.26 μm), N2-CH4 Mixed Layer, and subsurface Ocean Surface classes."
-      }
-    ]
+  ocean: () => {
+    const sel = document.getElementById("ice-class-selector");
+    const val = sel ? sel.value : "Ocean";
+    const readout = (document.getElementById("v3-ocean-readout") || {}).textContent || "H2O Ocean Surface";
+    return {
+      eyebrow: "MISSION 7 • ICY OCEAN WORLD SPECTROSCOPIST EXPLAINED",
+      title: `Live Spectral Profile: ${readout}`,
+      subtitle: "How infrared sunlight absorption reveals frozen shells and hidden subsurface oceans.",
+      cards: [
+        {
+          step: `SELECTED: ${val.replace("_", " ")}`,
+          title: "What the 0.75–5.0 μm Spectrum Shows",
+          body: `${readout}. Different ices absorb specific infrared wavelengths: water ice dips sharply at 1.50, 2.02, and 3.05 μm, methane clathrate at 1.66 and 2.32 μm, and CO2 ice at 4.26 μm.`
+        },
+        {
+          step: "BEER-LAMBERT LAW",
+          title: "Measuring Ice Shell Thickness",
+          body: "As sunlight passes through the outer ice crust, brightness decays exponentially (R = R0 · e^(-ατ)). Deeper absorption troughs indicate thicker or purer surface ice layers."
+        },
+        {
+          step: "SUBSURFACE BRINE",
+          title: "Detecting Liquid Water Below",
+          body: "Hydrated salt brines from a subsurface ocean create a characteristic absorption dip near 2.25 μm alongside a warm thermal emission plateau above 3.0 μm."
+        }
+      ]
+    };
   },
-  multi: {
-    eyebrow: "MISSION 8 • MULTI-SURVEY CONSENSUS DEEP DIVE",
-    title: "Cross-Archive Confirmation (SPHEREx + ZTF + TESS + NEOWISE)",
-    subtitle: "Combining infrared, optical, and high-cadence light curves to raise detection confidence from 78% to 97%.",
-    cards: [
-      {
-        step: "OPTICAL 01",
-        title: "ZTF Optical Astrometry (94%)",
-        body: "Cross-matching SPHEREx infrared tracklets against Zwicky Transient Facility (ZTF) optical epochs confirms reflected-sunlight colors and extends the astrometric baseline."
-      },
-      {
-        step: "PHOTOMETRY 02",
-        title: "TESS Rotational Light Curves (89%)",
-        body: "TESS high-cadence photometry measures rotational period (e.g., 0.31 days) and amplitude variations, ruling out stationary variable stars or detector artifacts."
-      },
-      {
-        step: "INFRARED 03",
-        title: "NEOWISE W1/W2 Thermal Consensus (97%)",
-        body: "Combining SPHEREx 0.75–5.0 μm spectra with NEOWISE 3.4/4.6 μm color indices yields a unified 97% multi-survey consensus score."
-      }
-    ]
+  multi: () => {
+    const readout = (document.getElementById("v3-multi-readout") || {}).textContent || "Consensus: 97%";
+    const detail = (document.getElementById("v3-multi-detail") || {}).textContent || "";
+    return {
+      eyebrow: "MISSION 8 • MULTI-SURVEY CONSENSUS EXPLAINED",
+      title: "Why Combining Four Telescopes Reaches 97% Confidence",
+      subtitle: "Cross-checking SPHEREx infrared detections with ZTF, TESS, and NEOWISE.",
+      cards: [
+        {
+          step: "CONSENSUS: 97%",
+          title: "Multi-Archive Confirmation",
+          body: `${readout}. A single survey can be fooled by detector glitches, but seeing the exact same moving body across optical and infrared archives eliminates false alarms.`
+        },
+        {
+          step: "ZTF + TESS",
+          title: "Optical Tracking & Spin Period",
+          body: `${detail}. ZTF provides reflected-sunlight optical astrometry (raising confidence to 94%), while TESS measures rotational brightness variations (0.31-day period).`
+        },
+        {
+          step: "NEOWISE IR",
+          title: "Long-Baseline Thermal Match",
+          body: "Matching SPHEREx against NASA's NEOWISE W1/W2 (3.4 & 4.6 μm) catalog confirms consistent infrared color (0.62 mag) and extends the orbital arc over a decade."
+        }
+      ]
+    };
   }
 };
 
 function renderMissionDetailedGuide(missionId) {
   const wrap = document.getElementById("mission-detailed-guide");
   if (!wrap) return;
-  const spec = MISSION_DETAILED_GUIDES[missionId];
-  if (!spec) {
+  const builder = MISSION_DETAILED_GUIDES[missionId];
+  if (!builder) {
     wrap.classList.add("hidden");
     return;
   }
+  const spec = builder();
   wrap.classList.remove("hidden");
   document.getElementById("mdg-eyebrow").textContent = spec.eyebrow;
   document.getElementById("mdg-title").textContent = spec.title;
@@ -980,3 +1045,32 @@ function v3SyncDrawerOnScroll() {
   if (hud) hud.classList.toggle("scrolled-hidden", isScrolled);
 }
 window.addEventListener("scroll", v3SyncDrawerOnScroll, { passive: true });
+
+async function syncWithLiveNasaArchive() {
+  try {
+    const ra = (document.getElementById("inp-ra") || {}).value || 293.85;
+    const dec = (document.getElementById("inp-dec") || {}).value || 33.79;
+    const r = await fetch(`/api/live-sync?ra=${ra}&dec=${dec}`);
+    if (!r.ok) return;
+    const syncData = await r.json();
+    const colSelect = document.getElementById("collection-select");
+    if (colSelect && syncData.discovery && Array.isArray(syncData.discovery.available_collections)) {
+      const existingVals = Array.from(colSelect.options).map((o) => o.value);
+      syncData.discovery.available_collections.forEach((colName) => {
+        if (!existingVals.includes(colName)) {
+          const opt = document.createElement("option");
+          opt.value = colName;
+          opt.textContent = `${colName.toUpperCase()} (Live Auto-Discovered)`;
+          colSelect.insertBefore(opt, colSelect.firstChild);
+        }
+      });
+    }
+    if (Array.isArray(syncData.candidates) && syncData.candidates.length > 0) {
+      currentAnalysis = { candidates: syncData.candidates };
+    }
+  } catch (_) {}
+}
+window.addEventListener("DOMContentLoaded", () => {
+  syncWithLiveNasaArchive();
+  setInterval(syncWithLiveNasaArchive, 60000);
+});

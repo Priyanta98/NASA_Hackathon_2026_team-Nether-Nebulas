@@ -74,7 +74,7 @@ def run_region_analysis_pipeline(
     ra: float = 304.6935,
     dec: float = 42.4437,
     radius_arcsec: float = 600.0,
-    collection: str = "spherex_qr2",
+    collection: str = "spherex_dr1",
 ) -> Dict[str, Any]:
     """
     Executes the full SPHEREx ChronoSky multi-epoch analysis pipeline on a sky region.
@@ -158,7 +158,7 @@ async def _continuous_evaluator_loop() -> None:
                 ra=corridor["ra_center"],
                 dec=corridor["dec_center"],
                 radius_arcsec=600.0,
-                collection="spherex_qr2",
+                collection="spherex_dr1",
             )
             tracklet_db.last_sweep_utc = datetime.datetime.now(datetime.timezone.utc).strftime(
                 "%Y-%m-%dT%H:%M:%SZ"
@@ -171,7 +171,7 @@ async def _continuous_evaluator_loop() -> None:
 @contextlib.asynccontextmanager
 async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
     try:
-        run_region_analysis_pipeline(304.6935, 42.4437, 600.0, "spherex_qr2")
+        run_region_analysis_pipeline(304.6935, 42.4437, 600.0, "spherex_dr1")
     except Exception as e:
         logger.warning(f"Initial seed warning: {e}")
 
@@ -214,7 +214,7 @@ def get_observations(
     ra: float = Query(304.6935, ge=0.0, le=360.0),
     dec: float = Query(42.4437, ge=-90.0, le=90.0),
     radius_arcsec: float = Query(600.0, ge=10.0, le=3600.0),
-    collection: str = Query("spherex_qr2"),
+    collection: str = Query("spherex_dr1"),
 ) -> Dict[str, Any]:
     obs = spherex_client.query_observations_by_position(
         ra=ra, dec=dec, radius_arcsec=radius_arcsec, collection=collection
@@ -239,7 +239,7 @@ def get_probability_corridors() -> Dict[str, Any]:
 def validate_pipeline(
     ra: float = Query(304.6935),
     dec: float = Query(42.4437),
-    collection: str = Query("spherex_qr2"),
+    collection: str = Query("spherex_dr1"),
 ) -> Dict[str, Any]:
     return validator.run_validation_suite(ra=ra, dec=dec)
 
@@ -249,7 +249,7 @@ def analyze_region(
     ra: float = Query(304.6935, ge=0.0, le=360.0),
     dec: float = Query(42.4437, ge=-90.0, le=90.0),
     radius_arcsec: float = Query(600.0, ge=10.0, le=3600.0),
-    collection: str = Query("spherex_qr2"),
+    collection: str = Query("spherex_dr1"),
 ) -> Dict[str, Any]:
     return run_region_analysis_pipeline(
         ra=ra, dec=dec, radius_arcsec=radius_arcsec, collection=collection
@@ -283,7 +283,7 @@ def trigger_sweep(
     ra: float = Query(304.6935),
     dec: float = Query(42.4437),
 ) -> Dict[str, Any]:
-    res = run_region_analysis_pipeline(ra=ra, dec=dec, radius_arcsec=600.0, collection="spherex_qr2")
+    res = run_region_analysis_pipeline(ra=ra, dec=dec, radius_arcsec=600.0, collection="spherex_dr1")
     tracklet_db.last_sweep_utc = datetime.datetime.now(datetime.timezone.utc).strftime(
         "%Y-%m-%dT%H:%M:%SZ"
     )
@@ -414,3 +414,25 @@ def v3_cross_survey_consensus(candidate_id: str = _V3Query("SPX-TRK-001")):
 @app.get("/api/active-learning/next")
 def v3_active_learning_next():
     return {"model_confidence_pct": 72.0, "human_votes": 45, "projected_90_pct_votes": 150, "next_uncertain_candidate": {"candidate_id": "SPX-TRK-002"}}
+
+@app.get("/api/live-sync")
+def v3_live_nasa_sync(
+    ra: float = _V3Query(293.8477, ge=0.0, le=360.0),
+    dec: float = _V3Query(33.7879, ge=-90.0, le=90.0),
+    radius_arcsec: float = _V3Query(600.0, ge=60.0, le=3600.0),
+):
+    discovery = (
+        spherex_client.discover_live_nasa_releases()
+        if hasattr(spherex_client, "discover_live_nasa_releases")
+        else {"live_nasa_archive_reachable": False, "available_collections": ["spherex_dr1", "spherex_qr3"]}
+    )
+    primary_col = discovery["available_collections"][0] if discovery.get("available_collections") else "spherex_dr1"
+    analysis = run_region_analysis_pipeline(ra=ra, dec=dec, radius_arcsec=radius_arcsec, collection=primary_col)
+    return {
+        "sync_status": "LIVE_NASA_IRSA" if discovery.get("live_nasa_archive_reachable") else "CACHED_BENCHMARK_FALLBACK",
+        "discovery": discovery,
+        "active_collection": primary_col,
+        "candidates": analysis.get("candidates", []),
+        "observations_count": analysis.get("observations_count", 0),
+        "last_sweep_utc": tracklet_db.last_sweep_utc,
+    }

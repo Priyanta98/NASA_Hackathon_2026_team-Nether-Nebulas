@@ -84,7 +84,7 @@ class SPHERExClient:
 
         for attempt in range(self.max_retries):
             try:
-                response = self.session.get(self.sia_url, params=params, timeout=35)
+                response = self.session.get(self.sia_url, params=params, timeout=8)
                 response.raise_for_status()
                 return response
             except Exception as e:
@@ -121,7 +121,7 @@ class SPHERExClient:
         ra: float,
         dec: float,
         radius_arcsec: float = 600.0,
-        collection: Optional[str] = "spherex_qr2",
+        collection: Optional[str] = "spherex_dr1",
         use_fallback_if_empty: bool = True,
     ) -> List[Dict[str, Any]]:
         """
@@ -132,7 +132,7 @@ class SPHERExClient:
         ra_norm = float(ra) % 360.0
         dec_clamped = float(np.clip(dec, -90.0, 90.0))
         radius_deg = max(float(radius_arcsec) / 3600.0, 0.005)
-        target_collection = collection or "spherex_qr2"
+        target_collection = collection or "spherex_dr1"
         pos_str = f"circle {ra_norm:.6f} {dec_clamped:.6f} {radius_deg:.5f}"
 
         try:
@@ -190,7 +190,7 @@ class SPHERExClient:
         return []
 
     def query_observations_by_time_range(
-        self, t_min: float, t_max: float, collection: Optional[str] = "spherex_qr2"
+        self, t_min: float, t_max: float, collection: Optional[str] = "spherex_dr1"
     ) -> List[Dict[str, Any]]:
         """Query observations filtered by Modified Julian Date range [t_min, t_max]."""
         all_obs = self.query_observations_by_position(
@@ -390,3 +390,31 @@ def _sc_query_cross_archive(self, candidate_id: str, ra_deg: float = 293.8477, d
 
 SPHERExClient.query_observations_by_proper_motion = _sc_query_observations_by_proper_motion
 SPHERExClient.query_cross_archive = _sc_query_cross_archive
+
+def _sc_discover_live_nasa_releases(self) -> dict:
+    import re as _re
+    import datetime as _dt
+    base_collections = ["spherex_dr1", "spherex_qr3", "spherex_dr1_deep", "spherex_qr3_deep", "spherex_dr1_cube"]
+    discovered = list(base_collections)
+    live_reachable = False
+    ibe_url = "https://irsa.ipac.caltech.edu/ibe/data/spherex/"
+    try:
+        resp = self.session.get(ibe_url, timeout=6)
+        if resp.status_code == 200:
+            live_reachable = True
+            matches = _re.findall(r'href="((?:dr|qr)\d+)/"', resp.text, _re.I)
+            for m in matches:
+                col_name = f"spherex_{m.lower()}"
+                if col_name not in discovered:
+                    discovered.insert(0, col_name)
+    except Exception:
+        pass
+    return {
+        "live_nasa_archive_reachable": live_reachable,
+        "ibe_root_url": ibe_url,
+        "sia2_url": self.sia_url,
+        "available_collections": discovered,
+        "checked_at_utc": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+SPHERExClient.discover_live_nasa_releases = _sc_discover_live_nasa_releases

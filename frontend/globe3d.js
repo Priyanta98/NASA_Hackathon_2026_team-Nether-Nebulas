@@ -143,7 +143,11 @@ window.ChronoSky3D = (function () {
     neptuneVoyager: "https://upload.wikimedia.org/wikipedia/commons/6/63/Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg"
   };
 
-  function build3DReliefBundleFromImage(img, baseToneRGB, deepBasinCenterUV, hasDeepBasin) {
+  // Converts any NASA spacecraft image (whether a full 2:1 equirectangular map like LRO Moon
+  // OR a circular planet disc photo surrounded by black space like New Horizons Pluto, OSIRIS Mars,
+  // Voyager Jupiter, and Voyager Neptune) into a 100% seamless 360° equirectangular texture + height map
+  // with ZERO black borders, ZERO vertical seams, and realistic 3D craters/troughs/crests.
+  function build3DReliefBundleFromImage(img, baseToneRGB, isCircleDiscPhoto, isGasGiant) {
     const w = 1024;
     const h = 512;
     const colorCanvas = document.createElement("canvas");
@@ -156,97 +160,144 @@ window.ChronoSky3D = (function () {
     heightCanvas.height = h;
     const hCtx = heightCanvas.getContext("2d");
 
+    // Draw source image onto a temporary sampling canvas
+    let srcPixels = null;
+    let sw = w;
+    let sh = h;
+    let discCx = w * 0.5;
+    let discCy = h * 0.5;
+    let discRx = w * 0.42;
+    let discRy = h * 0.42;
+
     if (img) {
-      cCtx.drawImage(img, 0, 0, w, h);
-    } else {
-      cCtx.fillStyle = `rgb(${baseToneRGB[0]}, ${baseToneRGB[1]}, ${baseToneRGB[2]})`;
-      cCtx.fillRect(0, 0, w, h);
+      const tmp = document.createElement("canvas");
+      tmp.width = w;
+      tmp.height = h;
+      const tCtx = tmp.getContext("2d");
+      tCtx.drawImage(img, 0, 0, w, h);
+      srcPixels = tCtx.getImageData(0, 0, w, h).data;
+
+      // Auto-detect illuminated planet disc bounding box if image has black space margins
+      if (isCircleDiscPhoto) {
+        let minX = w, maxX = 0, minY = h, maxY = 0;
+        for (let py = 0; py < h; py += 2) {
+          for (let px = 0; px < w; px += 2) {
+            const i = (py * w + px) * 4;
+            const lum = 0.299 * srcPixels[i] + 0.587 * srcPixels[i + 1] + 0.114 * srcPixels[i + 2];
+            if (lum > 32) {
+              if (px < minX) minX = px;
+              if (px > maxX) maxX = px;
+              if (py < minY) minY = py;
+              if (py > maxY) maxY = py;
+            }
+          }
+        }
+        if (maxX > minX + 40 && maxY > minY + 40) {
+          discCx = (minX + maxX) * 0.5;
+          discCy = (minY + maxY) * 0.5;
+          // Use 82% of detected disc radius so we stay strictly inside the lit planet away from dark limb edges
+          discRx = (maxX - minX) * 0.41;
+          discRy = (maxY - minY) * 0.41;
+        }
+      }
     }
 
-    const cData = cCtx.getImageData(0, 0, w, h);
-    const px = cData.data;
+    const cData = cCtx.createImageData(w, h);
+    const outPx = cData.data;
     const hData = hCtx.createImageData(w, h);
     const hPx = hData.data;
 
-    const bx = deepBasinCenterUV ? deepBasinCenterUV[0] * w : w * 0.52;
-    const by = deepBasinCenterUV ? deepBasinCenterUV[1] * h : h * 0.50;
-    const maxBasinR = h * 0.34;
-
     for (let y = 0; y < h; y++) {
+      // Latitude phi in [-pi/2, +pi/2]
+      const v = y / (h - 1);
+      const phi = (v - 0.5) * Math.PI;
+      const cosPhi = Math.cos(phi);
+      const sinPhi = Math.sin(phi);
+
       for (let x = 0; x < w; x++) {
         const idx = (y * w + x) * 4;
-        let r = px[idx];
-        let g = px[idx + 1];
-        let b = px[idx + 2];
-        let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        // Longitude lambda in [0, 2*pi] — periodic in sin/cos so u=0 and u=1 match seamlessly!
+        const u = x / w;
+        const lambda = u * Math.PI * 2.0;
 
-        // Deterministic multi-scale geological ridge/trough texture function
-        const n1 = Math.sin(x * 0.045 + y * 0.035) * Math.cos(x * 0.025 - y * 0.055);
-        const n2 = Math.sin(x * 0.14 - y * 0.11) * 0.5 + Math.cos(x * 0.27 + y * 0.23) * 0.35;
-        const microRelief = (n1 * 18 + n2 * 14);
+        let r = baseToneRGB[0];
+        let g = baseToneRGB[1];
+        let b = baseToneRGB[2];
 
-        // If pixel is in a pitch-black unmapped void (like on single-hemisphere New Horizons/OSIRIS photos),
-        // transform it into a realistic, deeply recessed 3D impact basin with terraced walls, radial ejecta
-        // troughs, a central rebound peak, and rocky floor strata!
-        if (lum < 26) {
-          const dx = (x - bx) * 0.85;
-          const dy = y - by;
-          const dist = Math.hypot(dx, dy);
-          const normR = Math.min(dist / maxBasinR, 1.4);
-          const angle = Math.atan2(dy, dx);
+        if (srcPixels) {
+          if (isCircleDiscPhoto) {
+            // Seamless Spherical Unwrap: map (lambda, phi) onto the interior of the illuminated NASA disc
+            // Using cos(lambda) makes longitude wrap 0 -> pi -> 2*pi with zero seam at u=0/1!
+            const nx = Math.sin(lambda - Math.PI * 0.5) * cosPhi;
+            const ny = sinPhi;
+            const sx = Math.max(0, Math.min(w - 1, Math.round(discCx + nx * discRx)));
+            const sy = Math.max(0, Math.min(h - 1, Math.round(discCy + ny * discRy)));
+            const sIdx = (sy * w + sx) * 4;
+            r = srcPixels[sIdx];
+            g = srcPixels[sIdx + 1];
+            b = srcPixels[sIdx + 2];
 
-          // Radial fracture grooves and concentric crater terraces
-          const terrace = Math.sin(normR * 22.0 + n1 * 1.4) * 9.0;
-          const radialGrooves = Math.cos(angle * 16.0 + n2 * 2.0) * 6.0;
-          const centralPeak = normR < 0.22 ? (0.22 - normR) * 140.0 : 0.0;
-          const rimCrest = Math.exp(-Math.pow((normR - 0.92) / 0.14, 2)) * 58.0;
-
-          // Deep concave bowl profile (low height = physical indentation in displacementMap)
-          const bowlDepth = normR < 0.95 ? 42.0 + 75.0 * Math.pow(normR, 1.7) : 118.0;
-          const elev = Math.max(12, Math.min(245, bowlDepth + terrace + radialGrooves + centralPeak + rimCrest + microRelief));
-
-          // Colorize the crater floor & terraced walls with realistic shadowed rock/ice strata
-          const shade = 0.28 + 0.52 * (elev / 255.0);
-          r = Math.min(255, Math.max(18, Math.round(baseToneRGB[0] * shade + terrace * 0.8)));
-          g = Math.min(255, Math.max(20, Math.round(baseToneRGB[1] * shade + terrace * 0.8)));
-          b = Math.min(255, Math.max(24, Math.round(baseToneRGB[2] * shade + terrace * 0.9)));
-
-          px[idx] = r;
-          px[idx + 1] = g;
-          px[idx + 2] = b;
-          px[idx + 3] = 255;
-
-          hPx[idx] = elev;
-          hPx[idx + 1] = elev;
-          hPx[idx + 2] = elev;
-          hPx[idx + 3] = 255;
-        } else {
-          // Real illuminated terrain: amplify troughs (dark fractures) and crests (bright ridges)
-          let elev = Math.max(10, Math.min(250, lum * 1.05 + microRelief * 0.65));
-          if (hasDeepBasin) {
-            const dx = (x - bx) * 0.85;
-            const dy = y - by;
-            const normR = Math.hypot(dx, dy) / (maxBasinR * 0.75);
-            if (normR < 1.0) {
-              const rim = Math.exp(-Math.pow((normR - 0.88) / 0.12, 2)) * 45.0;
-              const pit = (1.0 - normR) * 75.0;
-              elev = Math.max(12, Math.min(250, elev - pit + rim));
-            }
+            // Gentle limb-darkening compensation near the edges of the sampled disc
+            const rDist2 = nx * nx + ny * ny;
+            const limbBoost = 1.0 + 0.22 * rDist2;
+            r = Math.min(255, Math.round(r * limbBoost));
+            g = Math.min(255, Math.round(g * limbBoost));
+            b = Math.min(255, Math.round(b * limbBoost));
+          } else {
+            // Already a full 2:1 equirectangular map (e.g. LRO Moon)
+            r = srcPixels[idx];
+            g = srcPixels[idx + 1];
+            b = srcPixels[idx + 2];
           }
-          hPx[idx] = elev;
-          hPx[idx + 1] = elev;
-          hPx[idx + 2] = elev;
-          hPx[idx + 3] = 255;
+        } else {
+          // Procedural fallback using strictly periodic spherical harmonics (zero seam)
+          const wave = Math.sin(lambda * 3.0) * Math.cos(phi * 3.0) * 14.0;
+          r = Math.max(15, Math.min(255, Math.round(baseToneRGB[0] + wave)));
+          g = Math.max(15, Math.min(255, Math.round(baseToneRGB[1] + wave)));
+          b = Math.max(15, Math.min(255, Math.round(baseToneRGB[2] + wave)));
         }
+
+        outPx[idx] = r;
+        outPx[idx + 1] = g;
+        outPx[idx + 2] = b;
+        outPx[idx + 3] = 255;
+
+        // Compute seamless 3D topographic height map from true surface luminance + periodic spherical relief
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        const pRelief =
+          Math.sin(lambda * 6.0 + sinPhi * 4.0) * Math.cos(lambda * 4.0 - sinPhi * 5.0) * 10.0 +
+          Math.cos(lambda * 14.0) * cosPhi * 6.0;
+
+        let elev = 128;
+        if (isGasGiant) {
+          // Smooth banded cloud relief for Jupiter & Neptune
+          elev = Math.max(90, Math.min(165, Math.round(128 + (lum - 128) * 0.25)));
+        } else {
+          // Rocky/icy bodies: real dark craters/troughs indent inward, bright rims/crests rise outward
+          elev = Math.max(20, Math.min(240, Math.round(lum * 0.92 + pRelief * cosPhi)));
+        }
+
+        hPx[idx] = elev;
+        hPx[idx + 1] = elev;
+        hPx[idx + 2] = elev;
+        hPx[idx + 3] = 255;
       }
     }
 
     cCtx.putImageData(cData, 0, 0);
     hCtx.putImageData(hData, 0, 0);
 
+    const colorTex = new THREE.CanvasTexture(colorCanvas);
+    colorTex.wrapS = THREE.RepeatWrapping;
+    colorTex.wrapT = THREE.ClampToEdgeWrapping;
+
+    const heightTex = new THREE.CanvasTexture(heightCanvas);
+    heightTex.wrapS = THREE.RepeatWrapping;
+    heightTex.wrapT = THREE.ClampToEdgeWrapping;
+
     return {
-      colorMap: new THREE.CanvasTexture(colorCanvas),
-      heightMap: new THREE.CanvasTexture(heightCanvas)
+      colorMap: colorTex,
+      heightMap: heightTex
     };
   }
 
@@ -259,37 +310,37 @@ window.ChronoSky3D = (function () {
       dispScale: 0.02
     },
     spx_trk_002: {
-      ...build3DReliefBundleFromImage(null, [148, 163, 184], [0.52, 0.48], true),
-      bumpScale: 0.14,
-      dispScale: 0.11
+      ...build3DReliefBundleFromImage(null, [148, 163, 184], false, false),
+      bumpScale: 0.12,
+      dispScale: 0.07
     },
     spx_trk_001: {
-      ...build3DReliefBundleFromImage(null, [135, 175, 205], [0.55, 0.50], true),
-      bumpScale: 0.16,
-      dispScale: 0.13
+      ...build3DReliefBundleFromImage(null, [165, 152, 138], true, false),
+      bumpScale: 0.12,
+      dispScale: 0.07
     },
     mars: {
-      ...build3DReliefBundleFromImage(null, [194, 95, 58], [0.50, 0.50], true),
-      bumpScale: 0.13,
-      dispScale: 0.09
+      ...build3DReliefBundleFromImage(null, [194, 95, 58], true, false),
+      bumpScale: 0.11,
+      dispScale: 0.06
     },
     jupiter: {
-      ...build3DReliefBundleFromImage(null, [210, 165, 115], [0.50, 0.50], false),
-      bumpScale: 0.04,
-      dispScale: 0.02
+      ...build3DReliefBundleFromImage(null, [210, 165, 115], true, true),
+      bumpScale: 0.015,
+      dispScale: 0.0
     },
     neptune: {
-      ...build3DReliefBundleFromImage(null, [59, 130, 246], [0.50, 0.50], false),
-      bumpScale: 0.05,
-      dispScale: 0.02
+      ...build3DReliefBundleFromImage(null, [59, 130, 246], true, true),
+      bumpScale: 0.015,
+      dispScale: 0.0
     }
   };
 
-  function loadAndProcessRealPlanetImage(key, url, baseRGB, basinUV, hasBasin) {
+  function loadAndProcessRealPlanetImage(key, url, baseRGB, isCircleDiscPhoto, isGasGiant) {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = function () {
-      const bundle = build3DReliefBundleFromImage(img, baseRGB, basinUV, hasBasin);
+      const bundle = build3DReliefBundleFromImage(img, baseRGB, isCircleDiscPhoto, isGasGiant);
       planetBundles[key].colorMap = bundle.colorMap;
       planetBundles[key].heightMap = bundle.heightMap;
       if (currentBodyKey === key) {
@@ -299,12 +350,12 @@ window.ChronoSky3D = (function () {
     img.src = url;
   }
 
-  // Load real NASA LRO, New Horizons, OSIRIS, and Voyager maps through the 3D relief & crater builder
-  loadAndProcessRealPlanetImage("spx_trk_002", TEXTURE_URLS.moonLRO, [156, 172, 192], [0.48, 0.48], true);
-  loadAndProcessRealPlanetImage("spx_trk_001", TEXTURE_URLS.plutoNewHorizons, [138, 178, 208], [0.56, 0.50], true);
-  loadAndProcessRealPlanetImage("mars", TEXTURE_URLS.marsOSIRIS, [198, 98, 60], [0.52, 0.50], true);
-  loadAndProcessRealPlanetImage("jupiter", TEXTURE_URLS.jupiterVoyager, [212, 168, 118], [0.50, 0.50], false);
-  loadAndProcessRealPlanetImage("neptune", TEXTURE_URLS.neptuneVoyager, [64, 136, 248], [0.50, 0.50], false);
+  // Load real NASA LRO (2:1 map) and New Horizons / OSIRIS / Voyager disc photos (unwrapped seamlessly!)
+  loadAndProcessRealPlanetImage("spx_trk_002", TEXTURE_URLS.moonLRO, [156, 172, 192], false, false);
+  loadAndProcessRealPlanetImage("spx_trk_001", TEXTURE_URLS.plutoNewHorizons, [165, 152, 138], true, false);
+  loadAndProcessRealPlanetImage("mars", TEXTURE_URLS.marsOSIRIS, [198, 98, 60], true, false);
+  loadAndProcessRealPlanetImage("jupiter", TEXTURE_URLS.jupiterVoyager, [212, 168, 118], true, true);
+  loadAndProcessRealPlanetImage("neptune", TEXTURE_URLS.neptuneVoyager, [64, 136, 248], true, true);
 
   // 4. High-Density 128x128 3D Planet Mesh with Physical Displacement & Bump Relief
   const planetGroup = new THREE.Group();
@@ -484,13 +535,38 @@ window.ChronoSky3D = (function () {
 
 
 
-  // --- v3 Mission 5 & 6 CatmullRomCurve3 Approach & Hyperbolic Trajectory ---
+  // --- v3 Complete Earth-to-Target-Body 3D Trajectory (Origin Earth -> Target Body) ---
   let v3ApproachLine = null;
   let v3WaypointsSpheres = [];
   let v3Spacecraft = null;
+  let v3OriginEarth = null;
   let v3Curve = null;
   let v3Progress = 0;
   let v3AnimId = null;
+
+  function makeTextSprite(textStr, borderColor) {
+    const c = document.createElement("canvas");
+    c.width = 256;
+    c.height = 64;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "rgba(9, 15, 28, 0.85)";
+    ctx.strokeStyle = borderColor || "#38bdf8";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(6, 8, 244, 48, 12);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "bold 20px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(textStr, 128, 32);
+    const tex = new THREE.CanvasTexture(c);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    const sp = new THREE.Sprite(mat);
+    sp.scale.set(2.1, 0.52, 1);
+    return sp;
+  }
 
   function clearV3Trajectory() {
     if (v3AnimId) {
@@ -504,9 +580,8 @@ window.ChronoSky3D = (function () {
     }
     v3WaypointsSpheres.forEach((m) => scene.remove(m));
     v3WaypointsSpheres = [];
-    if (v3Spacecraft) {
-      v3Spacecraft.visible = false;
-    }
+    if (v3Spacecraft) v3Spacecraft.visible = false;
+    if (v3OriginEarth) v3OriginEarth.visible = false;
   }
 
   function runCatmullApproach(waypoints, colorHex) {
@@ -514,32 +589,74 @@ window.ChronoSky3D = (function () {
     solarOrbitGroup.visible = true;
 
     const hex = colorHex || 0x00ffff;
+    const earthPos = new THREE.Vector3(-5.8, -1.25, -1.2);
+    const targetArrivalPos = new THREE.Vector3(0.0, -0.15, planetRadius + 0.12);
+
+    // 1. Create 3D Departure Earth Sphere at the start of the trajectory
+    if (!v3OriginEarth) {
+      const eGroup = new THREE.Group();
+      const eSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.46, 48, 48),
+        new THREE.MeshStandardMaterial({
+          map: planetBundles.earth.colorMap,
+          roughness: 0.55,
+          metalness: 0.1
+        })
+      );
+      const eAtmo = new THREE.Mesh(
+        new THREE.SphereGeometry(0.51, 32, 32),
+        new THREE.MeshBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.32,
+          blending: THREE.AdditiveBlending
+        })
+      );
+      const eLabel = makeTextSprite("EARTH (1.0 AU)", "#38bdf8");
+      eLabel.position.set(0, 0.82, 0);
+      eGroup.add(eSphere);
+      eGroup.add(eAtmo);
+      eGroup.add(eLabel);
+      v3OriginEarth = eGroup;
+      scene.add(v3OriginEarth);
+    }
+    v3OriginEarth.position.copy(earthPos);
+    v3OriginEarth.visible = true;
+
+    // 2. Create 3D Spacecraft Probe
     if (!v3Spacecraft) {
       const scGroup = new THREE.Group();
       const core = new THREE.Mesh(
-        new THREE.SphereGeometry(0.14, 20, 20),
+        new THREE.SphereGeometry(0.13, 20, 20),
         new THREE.MeshBasicMaterial({ color: 0xffffff })
       );
       const halo = new THREE.Mesh(
-        new THREE.SphereGeometry(0.26, 20, 20),
-        new THREE.MeshBasicMaterial({ color: hex, transparent: true, opacity: 0.55 })
+        new THREE.SphereGeometry(0.25, 20, 20),
+        new THREE.MeshBasicMaterial({ color: hex, transparent: true, opacity: 0.6 })
       );
       scGroup.add(core);
       scGroup.add(halo);
       v3Spacecraft = scGroup;
       scene.add(v3Spacecraft);
     }
+    v3Spacecraft.children[1].material.color.setHex(hex);
     v3Spacecraft.visible = true;
 
-    const pts = (waypoints || [
-      { x: -5.2, y: -1.6, z: 3.2 },
-      { x: -2.8, y: 0.9, z: 2.6 },
-      { x: 0.0, y: 1.5, z: 2.9 },
-      { x: 2.5, y: 0.4, z: 2.4 }
-    ]).map((p) => new THREE.Vector3(p.x, p.y, p.z));
+    // 3. Build complete, unbroken path starting at Earth (earthPos) and ending directly at Target Body (targetArrivalPos)
+    let midPoints = [];
+    if (Array.isArray(waypoints) && waypoints.length >= 2) {
+      midPoints = waypoints.map((p) => new THREE.Vector3(p.x, p.y, p.z));
+    } else {
+      midPoints = [
+        new THREE.Vector3(-4.1, 0.45, 0.8),
+        new THREE.Vector3(-2.1, 1.15, 2.1),
+        new THREE.Vector3(-0.85, 0.55, 2.55)
+      ];
+    }
+    const fullPoints = [earthPos.clone(), ...midPoints, targetArrivalPos.clone()];
 
-    v3Curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
-    const curvePts = v3Curve.getPoints(90);
+    v3Curve = new THREE.CatmullRomCurve3(fullPoints, false, "centripetal");
+    const curvePts = v3Curve.getPoints(120);
     const geom = new THREE.BufferGeometry().setFromPoints(curvePts);
     v3ApproachLine = new THREE.Line(
       geom,
@@ -547,10 +664,11 @@ window.ChronoSky3D = (function () {
     );
     scene.add(v3ApproachLine);
 
-    // Add waypoint beacons along the 3D trajectory
-    pts.forEach((pt) => {
+    // 4. Place glowing waypoint beacons along the complete Earth -> Target path
+    [0.2, 0.4, 0.6, 0.8, 1.0].forEach((frac) => {
+      const pt = v3Curve.getPointAt(frac);
       const wpMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(0.07, 12, 12),
+        new THREE.SphereGeometry(frac === 1.0 ? 0.11 : 0.065, 14, 14),
         new THREE.MeshBasicMaterial({ color: hex })
       );
       wpMesh.position.copy(pt);
@@ -561,12 +679,12 @@ window.ChronoSky3D = (function () {
     v3Progress = 0;
     function stepApproach() {
       if (!v3Curve || !v3Spacecraft || !v3Spacecraft.visible) return;
-      v3Progress += 0.0045;
+      v3Progress += 0.0042;
       if (v3Progress > 1) v3Progress = 0;
       const s = v3Progress * v3Progress * (3 - 2 * v3Progress);
       const pos = v3Curve.getPointAt(s);
       v3Spacecraft.position.copy(pos);
-      v3Spacecraft.lookAt(planetGroup.position);
+      if (v3OriginEarth) v3OriginEarth.children[0].rotation.y += 0.01;
       v3AnimId = requestAnimationFrame(stepApproach);
     }
     v3AnimId = requestAnimationFrame(stepApproach);
