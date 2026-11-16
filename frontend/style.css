@@ -423,7 +423,7 @@ h1.hero-heading .accent-title {
 /* Bottom Time-Travel Sliding Bar + Playback Speed Controls */
 .time-travel-bottom-bar {
   position: absolute;
-  bottom: 4px;
+  bottom: 56px;
   left: 50%;
   transform: translateX(-50%);
   width: min(740px, 92vw);

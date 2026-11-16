@@ -37,13 +37,13 @@ window.ChronoSky3D = (function () {
 
   // Balanced lighting so night/shadow sides show subtle geological detail while
   // oblique sunlight carves sharp shadows across crater rims, troughs, and crests
-  const ambientLight = new THREE.AmbientLight(0x94a3b8, 2.15);
+  const ambientLight = new THREE.AmbientLight(0x94a3b8, 0.95);
   scene.add(ambientLight);
 
-  const hemiLight = new THREE.HemisphereLight(0xcbd5e1, 0x1e293b, 0.65);
+  const hemiLight = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 0.55);
   scene.add(hemiLight);
 
-  const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.75);
+  const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.45);
   sunLight.position.set(-11, 5, 10);
   scene.add(sunLight);
 
@@ -72,6 +72,136 @@ window.ChronoSky3D = (function () {
   solarOrbitGroup.visible = false; // Shown in Start Exploring, Time-Travel & Mission modes
   scene.add(solarOrbitGroup);
 
+  // Synchronous, Realistic 2:1 Equirectangular Planet & Sun Texture Builder (Guaranteed Never Black!)
+  function createRichPlanetaryCanvasTexture(kind) {
+    const w = 512;
+    const h = 256;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext("2d");
+    const imgData = ctx.createImageData(w, h);
+    const px = imgData.data;
+
+    for (let y = 0; y < h; y++) {
+      const v = y / (h - 1);
+      const phi = (v - 0.5) * Math.PI;
+      const cosPhi = Math.cos(phi);
+      const sinPhi = Math.sin(phi);
+
+      for (let x = 0; x < w; x++) {
+        const u = x / w;
+        const lon = u * Math.PI * 2.0;
+        const idx = (y * w + x) * 4;
+
+        // Periodic spherical noise (seamless at u=0 and u=1)
+        const n1 = Math.sin(lon * 3.0 + sinPhi * 4.0) * Math.cos(lon * 2.0 - sinPhi * 3.0);
+        const n2 = Math.sin(lon * 8.0 - sinPhi * 7.0) * 0.5 + Math.cos(lon * 13.0 + sinPhi * 11.0) * 0.5;
+        const n3 = Math.sin(lon * 21.0 + sinPhi * 19.0) * 0.35;
+        const bands = Math.sin(phi * 14.0 + n1 * 0.8) * 0.5 + Math.cos(phi * 26.0 + n2 * 0.6) * 0.5;
+
+        let r = 180, g = 180, b = 180;
+
+        if (kind === "sun") {
+          const gran = (n1 * 18 + n2 * 24 + n3 * 16);
+          r = 255;
+          g = Math.min(255, Math.max(165, Math.round(218 + gran)));
+          b = Math.min(240, Math.max(60, Math.round(115 + gran * 1.2)));
+        } else if (kind === "mercury" || kind === "spx_trk_002") {
+          const crater = (n1 * 24 + n2 * 22 + n3 * 18);
+          r = Math.min(235, Math.max(75, Math.round(152 + crater)));
+          g = Math.min(238, Math.max(78, Math.round(158 + crater)));
+          b = Math.min(245, Math.max(85, Math.round(168 + crater)));
+        } else if (kind === "venus") {
+          const swirl = Math.sin(phi * 7.0 + n1 * 1.4) * 22 + n2 * 14;
+          r = Math.min(255, Math.max(175, Math.round(234 + swirl)));
+          g = Math.min(235, Math.max(140, Math.round(192 + swirl * 0.85)));
+          b = Math.min(185, Math.max(85, Math.round(125 + swirl * 0.6)));
+        } else if (kind === "earth") {
+          const cont = n1 * 0.65 + n2 * 0.35;
+          if (Math.abs(phi) > 1.22) {
+            // Polar ice caps
+            r = 240; g = 248; b = 255;
+          } else if (cont > 0.12) {
+            // Continents (forest green to tan highlands)
+            r = Math.round(68 + cont * 95 + n3 * 20);
+            g = Math.round(128 + cont * 55 + n3 * 15);
+            b = Math.round(58 + cont * 30);
+          } else {
+            // Deep blue oceans
+            r = Math.round(18 + (cont + 1) * 18);
+            g = Math.round(78 + (cont + 1) * 38);
+            b = Math.round(168 + (cont + 1) * 45);
+          }
+        } else if (kind === "mars") {
+          if (Math.abs(phi) > 1.32) {
+            r = 238; g = 232; b = 225;
+          } else {
+            const rust = n1 * 28 + n2 * 20 + n3 * 14;
+            r = Math.min(242, Math.max(115, Math.round(198 + rust)));
+            g = Math.min(165, Math.max(55, Math.round(102 + rust * 0.65)));
+            b = Math.min(125, Math.max(35, Math.round(66 + rust * 0.45)));
+          }
+        } else if (kind === "jupiter") {
+          const jBand = bands * 38 + n2 * 12;
+          // Great Red Spot near southern tropics
+          const dLon = lon - 3.2;
+          const dPhi = phi - 0.38;
+          const grs = Math.exp(-(dLon * dLon * 6.0 + dPhi * dPhi * 28.0));
+          r = Math.min(252, Math.max(135, Math.round(214 + jBand + grs * 42)));
+          g = Math.min(228, Math.max(105, Math.round(174 + jBand * 0.85 - grs * 35)));
+          b = Math.min(195, Math.max(75, Math.round(132 + jBand * 0.65 - grs * 48)));
+        } else if (kind === "saturn") {
+          const sBand = Math.sin(phi * 16.0 + n1 * 0.4) * 24 + n2 * 8;
+          r = Math.min(250, Math.max(165, Math.round(228 + sBand)));
+          g = Math.min(232, Math.max(145, Math.round(198 + sBand * 0.9)));
+          b = Math.min(188, Math.max(95, Math.round(142 + sBand * 0.7)));
+        } else if (kind === "uranus") {
+          const uBand = Math.sin(phi * 8.0) * 12 + n1 * 6;
+          r = Math.min(185, Math.max(95, Math.round(135 + uBand)));
+          g = Math.min(242, Math.max(175, Math.round(216 + uBand)));
+          b = Math.min(255, Math.max(195, Math.round(238 + uBand)));
+        } else if (kind === "neptune") {
+          const nBand = Math.sin(phi * 11.0 + n1 * 0.6) * 22 + n2 * 10;
+          r = Math.min(115, Math.max(28, Math.round(58 + nBand * 0.6)));
+          g = Math.min(175, Math.max(68, Math.round(118 + nBand * 0.85)));
+          b = Math.min(255, Math.max(165, Math.round(228 + nBand)));
+        } else {
+          // Outer icy Pluto / SPX-TRK-001 world (Sputnik Planitia nitrogen ice & tholin highlands)
+          const ice = n1 * 32 + n2 * 22 + n3 * 14;
+          r = Math.min(238, Math.max(95, Math.round(176 + ice)));
+          g = Math.min(228, Math.max(88, Math.round(162 + ice * 0.92)));
+          b = Math.min(218, Math.max(82, Math.round(148 + ice * 0.85)));
+        }
+
+        px[idx] = r;
+        px[idx + 1] = g;
+        px[idx + 2] = b;
+        px[idx + 3] = 255;
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  const PROCEDURAL_PLANET_TEXTURES = {
+    sun: createRichPlanetaryCanvasTexture("sun"),
+    mercury: createRichPlanetaryCanvasTexture("mercury"),
+    venus: createRichPlanetaryCanvasTexture("venus"),
+    earth: createRichPlanetaryCanvasTexture("earth"),
+    mars: createRichPlanetaryCanvasTexture("mars"),
+    jupiter: createRichPlanetaryCanvasTexture("jupiter"),
+    saturn: createRichPlanetaryCanvasTexture("saturn"),
+    uranus: createRichPlanetaryCanvasTexture("uranus"),
+    neptune: createRichPlanetaryCanvasTexture("neptune"),
+    spx_trk: createRichPlanetaryCanvasTexture("spx_trk")
+  };
+
   function createSunGlowTexture() {
     const c = document.createElement("canvas");
     c.width = 512;
@@ -95,7 +225,7 @@ window.ChronoSky3D = (function () {
   const sunBasePos = new THREE.Vector3(-15.5, 2.4, -36.0);
   const sunMesh = new THREE.Mesh(
     new THREE.SphereGeometry(1.35, 48, 48),
-    new THREE.MeshBasicMaterial({ color: 0xfffbeb })
+    new THREE.MeshBasicMaterial({ map: PROCEDURAL_PLANET_TEXTURES.sun, color: 0xffffff })
   );
   sunMesh.position.copy(sunBasePos);
   sunOrbiter.add(sunMesh);
@@ -252,7 +382,7 @@ window.ChronoSky3D = (function () {
             // Gentle limb-darkening compensation near the edges of the sampled disc
             const rDist2 = nx * nx + ny * ny;
             const limbBoost = 1.0 + 0.22 * rDist2;
-            r = Math.min(255, Math.round(r * limbBoost));
+            r = Math.min(220, Math.round(r * 0.88));
             g = Math.min(255, Math.round(g * limbBoost));
             b = Math.min(255, Math.round(b * limbBoost));
           } else {
@@ -263,7 +393,7 @@ window.ChronoSky3D = (function () {
           }
         } else {
           // Procedural fallback using strictly periodic spherical harmonics (zero seam)
-          const wave = Math.sin(lambda * 3.0) * Math.cos(phi * 3.0) * 14.0;
+          const wave = Math.sin(lambda * 4.0 + sinPhi * 3.0) * 26.0 + Math.cos(lambda * 11.0 - sinPhi * 7.0) * 18.0;
           r = Math.max(15, Math.min(255, Math.round(baseToneRGB[0] + wave)));
           g = Math.max(15, Math.min(255, Math.round(baseToneRGB[1] + wave)));
           b = Math.max(15, Math.min(255, Math.round(baseToneRGB[2] + wave)));
@@ -420,7 +550,7 @@ window.ChronoSky3D = (function () {
     // 1. Central Glowing 3D Sun
     const centerSun = new THREE.Mesh(
       new THREE.SphereGeometry(0.42, 48, 48),
-      new THREE.MeshBasicMaterial({ map: textureLoader.load(TEXTURE_URLS.sun2k), color: 0xfffbeb })
+      new THREE.MeshBasicMaterial({ map: PROCEDURAL_PLANET_TEXTURES.sun, color: 0xffffff })
     );
     milkyWayGroup.add(centerSun);
 
@@ -470,13 +600,11 @@ window.ChronoSky3D = (function () {
       milkyWayGroup.add(orbitLine);
 
       // Planet pivot & mesh
-      const matOpts = { color: sp.color };
-      if (sp.tex) {
-        matOpts.map = textureLoader.load(sp.tex);
-      }
+      const fallbackTex = PROCEDURAL_PLANET_TEXTURES[sp.name] || PROCEDURAL_PLANET_TEXTURES.spx_trk;
+      const pMat = new THREE.MeshBasicMaterial({ map: fallbackTex, color: 0xffffff });
       const pMesh = new THREE.Mesh(
         new THREE.SphereGeometry(sp.size, 36, 36),
-        new THREE.MeshBasicMaterial(matOpts)
+        pMat
       );
 
       if (sp.hasRings) {
@@ -541,13 +669,11 @@ window.ChronoSky3D = (function () {
   ];
 
   CORRIDOR_SPECS.forEach((sp) => {
-    const matOpts = { color: sp.color };
-    if (sp.tex) {
-      matOpts.map = textureLoader.load(sp.tex);
-    }
+    const fallbackTex = PROCEDURAL_PLANET_TEXTURES[sp.key] || PROCEDURAL_PLANET_TEXTURES.spx_trk;
+    const cMat = new THREE.MeshBasicMaterial({ map: fallbackTex, color: 0xffffff });
     const mesh = new THREE.Mesh(
       new THREE.SphereGeometry(sp.size, 36, 36),
-      new THREE.MeshBasicMaterial(matOpts)
+      cMat
     );
     if (sp.hasRings) {
       const rGeo = new THREE.RingGeometry(sp.size * 1.4, sp.size * 2.3, 48);
