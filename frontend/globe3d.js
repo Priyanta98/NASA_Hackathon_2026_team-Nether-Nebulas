@@ -37,14 +37,14 @@ window.ChronoSky3D = (function () {
 
   // Balanced lighting so night/shadow sides show subtle geological detail while
   // oblique sunlight carves sharp shadows across crater rims, troughs, and crests
-  const ambientLight = new THREE.AmbientLight(0x94a3b8, 0.95);
+  const ambientLight = new THREE.AmbientLight(0x334155, 0.65);
   scene.add(ambientLight);
 
-  const hemiLight = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 0.55);
+  const hemiLight = new THREE.HemisphereLight(0x94a3b8, 0x0f172a, 0.35);
   scene.add(hemiLight);
 
-  const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.45);
-  sunLight.position.set(-11, 5, 10);
+  const sunLight = new THREE.DirectionalLight(0xfff8e7, 1.45);
+  sunLight.position.set(-14, 4.2, 6.5);
   scene.add(sunLight);
 
   // 1. Far-Sky Starfield
@@ -72,7 +72,42 @@ window.ChronoSky3D = (function () {
   solarOrbitGroup.visible = false; // Shown in Start Exploring, Time-Travel & Mission modes
   scene.add(solarOrbitGroup);
 
-  // Synchronous, Realistic 2:1 Equirectangular Planet & Sun Texture Builder (Guaranteed Never Black!)
+  // Deterministic pseudo-random generator for realistic multi-scale impact craters, holes & fracture troughs
+  function generateCraterList(seed, count) {
+    let s = seed;
+    function nextRand() {
+      s = (s * 1664525 + 1013904223) % 4294967296;
+      return s / 4294967296;
+    }
+    const list = [];
+    for (let i = 0; i < count; i++) {
+      // Include 4 massive deep impact basins (big holes), 25 medium craters, and many sharp micro-craters
+      let rad;
+      if (i < 4) {
+        rad = 0.14 + nextRand() * 0.10; // Giant deep impact holes/basins
+      } else if (i < 28) {
+        rad = 0.045 + nextRand() * 0.065; // Medium terraced craters
+      } else {
+        rad = 0.014 + nextRand() * 0.028; // Sharp small craters
+      }
+      const lon = nextRand() * Math.PI * 2.0;
+      const lat = (nextRand() - 0.5) * Math.PI * 0.78;
+      const depth = i < 4 ? 1.35 : (i < 28 ? 0.95 : 0.65);
+      list.push({
+        lon,
+        lat,
+        cx: Math.cos(lat) * Math.cos(lon),
+        cy: Math.sin(lat),
+        cz: Math.cos(lat) * Math.sin(lon),
+        rad,
+        depth,
+        hasPeak: i < 12
+      });
+    }
+    return list;
+  }
+
+  // Synchronous High-Detail 2:1 Planetary & Solar Surface Builder (with real 3D holes, craters & atmospheric bands)
   function createRichPlanetaryCanvasTexture(kind) {
     const w = 512;
     const h = 256;
@@ -82,6 +117,9 @@ window.ChronoSky3D = (function () {
     const ctx = c.getContext("2d");
     const imgData = ctx.createImageData(w, h);
     const px = imgData.data;
+
+    const isRocky = (kind === "mercury" || kind === "mars" || kind === "spx_trk" || kind === "spx_trk_002");
+    const craters = isRocky ? generateCraterList(kind === "mars" ? 77 : 31, 95) : [];
 
     for (let y = 0; y < h; y++) {
       const v = y / (h - 1);
@@ -94,89 +132,114 @@ window.ChronoSky3D = (function () {
         const lon = u * Math.PI * 2.0;
         const idx = (y * w + x) * 4;
 
-        // Periodic spherical noise (seamless at u=0 and u=1)
-        const n1 = Math.sin(lon * 3.0 + sinPhi * 4.0) * Math.cos(lon * 2.0 - sinPhi * 3.0);
-        const n2 = Math.sin(lon * 8.0 - sinPhi * 7.0) * 0.5 + Math.cos(lon * 13.0 + sinPhi * 11.0) * 0.5;
-        const n3 = Math.sin(lon * 21.0 + sinPhi * 19.0) * 0.35;
-        const bands = Math.sin(phi * 14.0 + n1 * 0.8) * 0.5 + Math.cos(phi * 26.0 + n2 * 0.6) * 0.5;
+        const vx = cosPhi * Math.cos(lon);
+        const vy = sinPhi;
+        const vz = cosPhi * Math.sin(lon);
 
-        let r = 180, g = 180, b = 180;
+        const n1 = Math.sin(lon * 4.0 + sinPhi * 5.0) * Math.cos(lon * 3.0 - sinPhi * 4.0);
+        const n2 = Math.sin(lon * 11.0 - sinPhi * 9.0) * 0.5 + Math.cos(lon * 17.0 + sinPhi * 15.0) * 0.5;
+        const n3 = Math.sin(lon * 29.0 + sinPhi * 25.0) * 0.4 + Math.cos(lon * 43.0 - sinPhi * 37.0) * 0.3;
+        const bands = Math.sin(phi * 16.0 + n1 * 0.9) * 0.55 + Math.cos(phi * 30.0 + n2 * 0.7) * 0.45;
 
+        // Calculate physical crater & deep-hole elevation delta on 3D unit sphere
+        let craterDelta = 0.0;
+        let holeShadow = 1.0;
+        if (isRocky) {
+          for (let k = 0; k < craters.length; k++) {
+            const cr = craters[k];
+            const dx = vx - cr.cx;
+            const dy = vy - cr.cy;
+            const dz = vz - cr.cz;
+            const d2 = dx * dx + dy * dy + dz * dz;
+            const rMax2 = cr.rad * cr.rad * 2.2;
+            if (d2 < rMax2) {
+              const dist = Math.sqrt(d2) / cr.rad;
+              if (dist < 1.0) {
+                // Deep concave bowl floor (physical hole)
+                const bowl = -cr.depth * (1.0 - dist * dist * 0.85);
+                const peak = (cr.hasPeak && dist < 0.26) ? (0.26 - dist) * 1.4 * cr.depth : 0.0;
+                craterDelta += (bowl + peak) * 58.0;
+                // Directional interior shadow inside big holes so they look convincingly recessed
+                const lightDot = (vx - cr.cx) * -0.75 + (vy - cr.cy) * 0.35;
+                holeShadow *= Math.max(0.22, 0.58 + lightDot / (cr.rad * 1.8));
+              } else if (dist < 1.42) {
+                // Raised rocky ejecta rim crest
+                const rim = Math.exp(-Math.pow((dist - 1.06) / 0.16, 2)) * cr.depth * 36.0;
+                craterDelta += rim;
+              }
+            }
+          }
+        }
+
+        let r = 150, g = 150, b = 150;
         if (kind === "sun") {
-          const gran = (n1 * 18 + n2 * 24 + n3 * 16);
+          const gran = (n1 * 22 + n2 * 28 + n3 * 22);
           r = 255;
-          g = Math.min(255, Math.max(165, Math.round(218 + gran)));
-          b = Math.min(240, Math.max(60, Math.round(115 + gran * 1.2)));
-        } else if (kind === "mercury" || kind === "spx_trk_002") {
-          const crater = (n1 * 24 + n2 * 22 + n3 * 18);
-          r = Math.min(235, Math.max(75, Math.round(152 + crater)));
-          g = Math.min(238, Math.max(78, Math.round(158 + crater)));
-          b = Math.min(245, Math.max(85, Math.round(168 + crater)));
+          g = Math.min(255, Math.max(150, Math.round(205 + gran)));
+          b = Math.min(220, Math.max(40, Math.round(85 + gran * 1.1)));
+        } else if (kind === "mercury" || kind === "spx_trk" || kind === "spx_trk_002") {
+          const base = 132 + n1 * 18 + n2 * 16 + n3 * 14 + craterDelta;
+          r = Math.min(215, Math.max(24, Math.round(base * holeShadow)));
+          g = Math.min(220, Math.max(26, Math.round((base + 4) * holeShadow)));
+          b = Math.min(228, Math.max(30, Math.round((base + 10) * holeShadow)));
         } else if (kind === "venus") {
-          const swirl = Math.sin(phi * 7.0 + n1 * 1.4) * 22 + n2 * 14;
-          r = Math.min(255, Math.max(175, Math.round(234 + swirl)));
-          g = Math.min(235, Math.max(140, Math.round(192 + swirl * 0.85)));
-          b = Math.min(185, Math.max(85, Math.round(125 + swirl * 0.6)));
+          const swirl = Math.sin(phi * 8.0 + n1 * 1.5) * 24 + n2 * 16 + n3 * 10;
+          r = Math.min(242, Math.max(150, Math.round(215 + swirl)));
+          g = Math.min(210, Math.max(115, Math.round(172 + swirl * 0.85)));
+          b = Math.min(155, Math.max(65, Math.round(105 + swirl * 0.6)));
         } else if (kind === "earth") {
           const cont = n1 * 0.65 + n2 * 0.35;
           if (Math.abs(phi) > 1.22) {
-            // Polar ice caps
-            r = 240; g = 248; b = 255;
-          } else if (cont > 0.12) {
-            // Continents (forest green to tan highlands)
-            r = Math.round(68 + cont * 95 + n3 * 20);
-            g = Math.round(128 + cont * 55 + n3 * 15);
-            b = Math.round(58 + cont * 30);
+            r = 235; g = 242; b = 250;
+          } else if (cont > 0.10) {
+            r = Math.round(62 + cont * 88 + n3 * 18);
+            g = Math.round(118 + cont * 52 + n3 * 14);
+            b = Math.round(52 + cont * 28);
           } else {
-            // Deep blue oceans
-            r = Math.round(18 + (cont + 1) * 18);
-            g = Math.round(78 + (cont + 1) * 38);
-            b = Math.round(168 + (cont + 1) * 45);
+            r = Math.round(16 + (cont + 1) * 16);
+            g = Math.round(68 + (cont + 1) * 34);
+            b = Math.round(152 + (cont + 1) * 42);
           }
         } else if (kind === "mars") {
-          if (Math.abs(phi) > 1.32) {
-            r = 238; g = 232; b = 225;
+          if (Math.abs(phi) > 1.34) {
+            r = 228; g = 222; b = 215;
           } else {
-            const rust = n1 * 28 + n2 * 20 + n3 * 14;
-            r = Math.min(242, Math.max(115, Math.round(198 + rust)));
-            g = Math.min(165, Math.max(55, Math.round(102 + rust * 0.65)));
-            b = Math.min(125, Math.max(35, Math.round(66 + rust * 0.45)));
+            const rust = n1 * 24 + n2 * 18 + n3 * 14 + craterDelta * 0.85;
+            r = Math.min(225, Math.max(38, Math.round((182 + rust) * holeShadow)));
+            g = Math.min(148, Math.max(22, Math.round((88 + rust * 0.62) * holeShadow)));
+            b = Math.min(108, Math.max(16, Math.round((56 + rust * 0.42) * holeShadow)));
           }
         } else if (kind === "jupiter") {
-          const jBand = bands * 38 + n2 * 12;
-          // Great Red Spot near southern tropics
+          const jBand = bands * 36 + n2 * 14 + n3 * 8;
           const dLon = lon - 3.2;
           const dPhi = phi - 0.38;
           const grs = Math.exp(-(dLon * dLon * 6.0 + dPhi * dPhi * 28.0));
-          r = Math.min(252, Math.max(135, Math.round(214 + jBand + grs * 42)));
-          g = Math.min(228, Math.max(105, Math.round(174 + jBand * 0.85 - grs * 35)));
-          b = Math.min(195, Math.max(75, Math.round(132 + jBand * 0.65 - grs * 48)));
+          r = Math.min(238, Math.max(110, Math.round(196 + jBand + grs * 42)));
+          g = Math.min(208, Math.max(85, Math.round(156 + jBand * 0.82 - grs * 35)));
+          b = Math.min(172, Math.max(60, Math.round(116 + jBand * 0.62 - grs * 45)));
         } else if (kind === "saturn") {
-          const sBand = Math.sin(phi * 16.0 + n1 * 0.4) * 24 + n2 * 8;
-          r = Math.min(250, Math.max(165, Math.round(228 + sBand)));
-          g = Math.min(232, Math.max(145, Math.round(198 + sBand * 0.9)));
-          b = Math.min(188, Math.max(95, Math.round(142 + sBand * 0.7)));
+          const sBand = Math.sin(phi * 18.0 + n1 * 0.5) * 22 + n2 * 10;
+          r = Math.min(235, Math.max(145, Math.round(208 + sBand)));
+          g = Math.min(212, Math.max(125, Math.round(180 + sBand * 0.88)));
+          b = Math.min(168, Math.max(80, Math.round(128 + sBand * 0.68)));
         } else if (kind === "uranus") {
-          const uBand = Math.sin(phi * 8.0) * 12 + n1 * 6;
-          r = Math.min(185, Math.max(95, Math.round(135 + uBand)));
-          g = Math.min(242, Math.max(175, Math.round(216 + uBand)));
-          b = Math.min(255, Math.max(195, Math.round(238 + uBand)));
+          const uBand = Math.sin(phi * 9.0) * 14 + n1 * 8;
+          r = Math.min(175, Math.max(85, Math.round(122 + uBand)));
+          g = Math.min(228, Math.max(155, Math.round(198 + uBand)));
+          b = Math.min(245, Math.max(175, Math.round(222 + uBand)));
         } else if (kind === "neptune") {
-          const nBand = Math.sin(phi * 11.0 + n1 * 0.6) * 22 + n2 * 10;
-          r = Math.min(115, Math.max(28, Math.round(58 + nBand * 0.6)));
-          g = Math.min(175, Math.max(68, Math.round(118 + nBand * 0.85)));
-          b = Math.min(255, Math.max(165, Math.round(228 + nBand)));
-        } else {
-          // Outer icy Pluto / SPX-TRK-001 world (Sputnik Planitia nitrogen ice & tholin highlands)
-          const ice = n1 * 32 + n2 * 22 + n3 * 14;
-          r = Math.min(238, Math.max(95, Math.round(176 + ice)));
-          g = Math.min(228, Math.max(88, Math.round(162 + ice * 0.92)));
-          b = Math.min(218, Math.max(82, Math.round(148 + ice * 0.85)));
+          const nBand = Math.sin(phi * 12.0 + n1 * 0.7) * 24 + n2 * 12;
+          const spot = Math.exp(-((lon - 2.4) * (lon - 2.4) * 7.0 + (phi + 0.32) * (phi + 0.32) * 30.0));
+          r = Math.min(105, Math.max(18, Math.round(48 + nBand * 0.55 - spot * 22)));
+          g = Math.min(162, Math.max(45, Math.round(104 + nBand * 0.82 - spot * 32)));
+          b = Math.min(245, Math.max(125, Math.round(212 + nBand - spot * 38)));
         }
 
-        px[idx] = r;
-        px[idx + 1] = g;
-        px[idx + 2] = b;
+        // Subtle longitudinal shading on small spheres so they look 3D without black crescents
+        const shade3D = 0.78 + 0.22 * Math.cos(lon - 1.8) * cosPhi;
+        px[idx] = Math.min(255, Math.round(r * shade3D));
+        px[idx + 1] = Math.min(255, Math.round(g * shade3D));
+        px[idx + 2] = Math.min(255, Math.round(b * shade3D));
         px[idx + 3] = 255;
       }
     }
@@ -242,7 +305,6 @@ window.ChronoSky3D = (function () {
   sunHalo.scale.set(12.5, 12.5, 1);
   sunMesh.add(sunHalo);
 
-  // Visible Heliocentric Orbit Arc Passing Through the Target Planet Around the Distant Sun
   const orbitArcPts = [];
   for (let i = -90; i <= 90; i++) {
     const rad = (i * Math.PI) / 180;
@@ -254,42 +316,28 @@ window.ChronoSky3D = (function () {
   );
   solarOrbitGroup.add(orbitArcLine);
 
-  // Line of Solar System Planets at their respective orbital order between the Sun and the Outer System
   const corridorPlanetsGroup = new THREE.Group();
   solarOrbitGroup.add(corridorPlanetsGroup);
   const corridorPlanetItems = [];
 
-  // 3. 3D Topographic Relief & Deep Impact Basin Processor
-  // Transforms real NASA spacecraft imagery so that:
-  // - Any flat black/unmapped gap becomes a realistic, deeply recessed 3D impact crater
-  //   with terraced rock walls, central peak, and raised rim (never a flat black blotch).
-  // - Generates a high-resolution 3D Height/Displacement Map + Bump Map for troughs & crests.
+  // 3. High-Resolution 3D Topographic Crater, Deep Basin & NASA Image Processor
   const textureLoader = new THREE.TextureLoader();
   textureLoader.setCrossOrigin("anonymous");
 
+  // Direct CORS-verified NASA & Wikimedia upload URLs (no 302 redirects!)
   const TEXTURE_URLS = {
-    sun2k: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_sun.jpg",
-    mercury2k: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_mercury.jpg",
-    venus2k: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_venus_atmosphere.jpg",
-    earthDay: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_earth_daymap.jpg",
+    earthDay: "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg",
     earthSpecular: "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg",
     earthNormal: "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg",
     earthClouds: "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png",
-    moonLRO: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_moon.jpg",
-    plutoNewHorizons: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_ceres_fictional.jpg",
-    marsOSIRIS: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_mars.jpg",
-    jupiterVoyager: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_jupiter.jpg",
-    saturn2k: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_saturn.jpg",
-    uranus2k: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_uranus.jpg",
-    neptuneVoyager: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_neptune.jpg",
-    barnardsStar: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_sun.jpg",
-    epsilonIndiB: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_jupiter.jpg",
-    wise0855: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_neptune.jpg",
-    rwAurigae: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_sun.jpg",
-    rDraconis: "https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_sun.jpg"
+    moonLRO: "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/moon_1024.jpg",
+    plutoNewHorizons: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Pluto_in_True_Color_-_High-Res.jpg",
+    marsOSIRIS: "https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg",
+    jupiterVoyager: "https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg",
+    neptuneVoyager: "https://upload.wikimedia.org/wikipedia/commons/6/63/Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg"
   };
 
-  function build3DReliefBundleFromImage(img, baseToneRGB, isCircleDiscPhoto, isGasGiant) {
+  function build3DReliefBundleFromImage(img, baseToneRGB, isCircleDiscPhoto, isGasGiant, seedVal) {
     const w = 1024;
     const h = 512;
     const colorCanvas = document.createElement("canvas");
@@ -302,14 +350,11 @@ window.ChronoSky3D = (function () {
     heightCanvas.height = h;
     const hCtx = heightCanvas.getContext("2d");
 
-    // Draw source image onto a temporary sampling canvas
     let srcPixels = null;
-    let sw = w;
-    let sh = h;
     let discCx = w * 0.5;
     let discCy = h * 0.5;
-    let discRx = w * 0.42;
-    let discRy = h * 0.42;
+    let discRx = w * 0.40;
+    let discRy = h * 0.40;
 
     if (img) {
       const tmp = document.createElement("canvas");
@@ -319,14 +364,13 @@ window.ChronoSky3D = (function () {
       tCtx.drawImage(img, 0, 0, w, h);
       srcPixels = tCtx.getImageData(0, 0, w, h).data;
 
-      // Auto-detect illuminated planet disc bounding box if image has black space margins
-      if (false) {
+      if (isCircleDiscPhoto) {
         let minX = w, maxX = 0, minY = h, maxY = 0;
         for (let py = 0; py < h; py += 2) {
           for (let px = 0; px < w; px += 2) {
             const i = (py * w + px) * 4;
             const lum = 0.299 * srcPixels[i] + 0.587 * srcPixels[i + 1] + 0.114 * srcPixels[i + 2];
-            if (lum > 32) {
+            if (lum > 38) {
               if (px < minX) minX = px;
               if (px > maxX) maxX = px;
               if (py < minY) minY = py;
@@ -337,12 +381,15 @@ window.ChronoSky3D = (function () {
         if (maxX > minX + 40 && maxY > minY + 40) {
           discCx = (minX + maxX) * 0.5;
           discCy = (minY + maxY) * 0.5;
-          // Use 82% of detected disc radius so we stay strictly inside the lit planet away from dark limb edges
-          discRx = (maxX - minX) * 0.41;
-          discRy = (maxY - minY) * 0.41;
+          // Sample inner 76% of the lit planet disc so unmapped dark limb regions are never sampled
+          discRx = (maxX - minX) * 0.38;
+          discRy = (maxY - minY) * 0.38;
         }
       }
     }
+
+    // Generate 135 realistic 3D craters & deep impact holes for rocky/icy worlds
+    const craters = !isGasGiant ? generateCraterList(seedVal || 101, 135) : [];
 
     const cData = cCtx.createImageData(w, h);
     const outPx = cData.data;
@@ -350,7 +397,6 @@ window.ChronoSky3D = (function () {
     const hPx = hData.data;
 
     for (let y = 0; y < h; y++) {
-      // Latitude phi in [-pi/2, +pi/2]
       const v = y / (h - 1);
       const phi = (v - 0.5) * Math.PI;
       const cosPhi = Math.cos(phi);
@@ -358,18 +404,24 @@ window.ChronoSky3D = (function () {
 
       for (let x = 0; x < w; x++) {
         const idx = (y * w + x) * 4;
-        // Longitude lambda in [0, 2*pi] — periodic in sin/cos so u=0 and u=1 match seamlessly!
         const u = x / w;
         const lambda = u * Math.PI * 2.0;
+
+        const vx = cosPhi * Math.cos(lambda);
+        const vy = sinPhi;
+        const vz = cosPhi * Math.sin(lambda);
+
+        // High-frequency rocky grain & fracture ridges
+        const n1 = Math.sin(lambda * 5.0 + sinPhi * 6.0) * Math.cos(lambda * 4.0 - sinPhi * 5.0);
+        const n2 = Math.sin(lambda * 16.0 - sinPhi * 13.0) * 0.5 + Math.cos(lambda * 24.0 + sinPhi * 21.0) * 0.5;
+        const n3 = Math.sin(lambda * 48.0 + sinPhi * 42.0) * 0.35 + Math.cos(lambda * 72.0 - sinPhi * 64.0) * 0.25;
 
         let r = baseToneRGB[0];
         let g = baseToneRGB[1];
         let b = baseToneRGB[2];
 
         if (srcPixels) {
-          if (false) {
-            // Seamless Spherical Unwrap: map (lambda, phi) onto the interior of the illuminated NASA disc
-            // Using cos(lambda) makes longitude wrap 0 -> pi -> 2*pi with zero seam at u=0/1!
+          if (isCircleDiscPhoto) {
             const nx = Math.sin(lambda - Math.PI * 0.5) * cosPhi;
             const ny = sinPhi;
             const sx = Math.max(0, Math.min(w - 1, Math.round(discCx + nx * discRx)));
@@ -378,53 +430,71 @@ window.ChronoSky3D = (function () {
             r = srcPixels[sIdx];
             g = srcPixels[sIdx + 1];
             b = srcPixels[sIdx + 2];
-
-            // Gentle limb-darkening compensation near the edges of the sampled disc
-            const rDist2 = nx * nx + ny * ny;
-            const limbBoost = 1.0 + 0.22 * rDist2;
-            r = Math.min(220, Math.round(r * 0.88));
-            g = Math.min(255, Math.round(g * limbBoost));
-            b = Math.min(255, Math.round(b * limbBoost));
           } else {
-            // Already a full 2:1 equirectangular map (e.g. LRO Moon)
             r = srcPixels[idx];
             g = srcPixels[idx + 1];
             b = srcPixels[idx + 2];
           }
+        } else if (isGasGiant) {
+          const band = Math.sin(phi * 18.0 + n1 * 0.8) * 28 + Math.cos(phi * 32.0 + n2 * 0.6) * 14;
+          r = Math.max(20, Math.min(240, Math.round(baseToneRGB[0] + band)));
+          g = Math.max(20, Math.min(240, Math.round(baseToneRGB[1] + band * 0.85)));
+          b = Math.max(20, Math.min(245, Math.round(baseToneRGB[2] + band * 0.7)));
         } else {
-          // Procedural fallback using strictly periodic spherical harmonics (zero seam)
-          const wave = Math.sin(lambda * 4.0 + sinPhi * 3.0) * 26.0 + Math.cos(lambda * 11.0 - sinPhi * 7.0) * 18.0;
-          r = Math.max(15, Math.min(255, Math.round(baseToneRGB[0] + wave)));
-          g = Math.max(15, Math.min(255, Math.round(baseToneRGB[1] + wave)));
-          b = Math.max(15, Math.min(255, Math.round(baseToneRGB[2] + wave)));
+          const rock = n1 * 18 + n2 * 14 + n3 * 12;
+          r = Math.max(30, Math.min(220, Math.round(baseToneRGB[0] + rock)));
+          g = Math.max(30, Math.min(220, Math.round(baseToneRGB[1] + rock)));
+          b = Math.max(30, Math.min(225, Math.round(baseToneRGB[2] + rock)));
         }
 
-        // Guarantee zero black spots: lift any dark pixel smoothly toward baseToneRGB
-        const rawLum = 0.299 * r + 0.587 * g + 0.114 * b;
-        if (rawLum < 42) {
-          const blend = (42 - rawLum) / 42.0;
-          r = Math.round(r * (1 - blend) + baseToneRGB[0] * blend);
-          g = Math.round(g * (1 - blend) + baseToneRGB[1] * blend);
-          b = Math.round(b * (1 - blend) + baseToneRGB[2] * blend);
+        // Carve physical 3D impact holes, terraced crater walls, central rebound peaks & raised rims
+        let craterElevDelta = 0.0;
+        let holeShade = 1.0;
+        if (!isGasGiant) {
+          for (let k = 0; k < craters.length; k++) {
+            const cr = craters[k];
+            const dx = vx - cr.cx;
+            const dy = vy - cr.cy;
+            const dz = vz - cr.cz;
+            const d2 = dx * dx + dy * dy + dz * dz;
+            const rMax2 = cr.rad * cr.rad * 2.1;
+            if (d2 < rMax2) {
+              const dist = Math.sqrt(d2) / cr.rad;
+              if (dist < 1.0) {
+                // Deep concave hole floor with concentric rocky terraces
+                const terrace = Math.sin(dist * 18.0) * 0.08;
+                const bowl = -cr.depth * (1.0 - Math.pow(dist, 1.65)) + terrace;
+                const peak = (cr.hasPeak && dist < 0.24) ? (0.24 - dist) * 1.55 * cr.depth : 0.0;
+                craterElevDelta += (bowl + peak) * 76.0;
+                // Realistic internal shadow inside deep holes & craters
+                const sunDot = (vx - cr.cx) * -0.82 + (vy - cr.cy) * 0.35;
+                holeShade *= Math.max(0.24, Math.min(1.18, 0.56 + sunDot / (cr.rad * 1.5)));
+              } else if (dist < 1.40) {
+                // Sharp raised crater rim crest
+                const rim = Math.exp(-Math.pow((dist - 1.05) / 0.14, 2)) * cr.depth * 44.0;
+                craterElevDelta += rim;
+                holeShade *= (1.0 + rim * 0.003);
+              }
+            }
+          }
         }
+
+        const microGrain = (n2 * 10.0 + n3 * 14.0);
+        r = Math.max(16, Math.min(230, Math.round((r + microGrain * 0.45) * holeShade)));
+        g = Math.max(16, Math.min(230, Math.round((g + microGrain * 0.45) * holeShade)));
+        b = Math.max(18, Math.min(235, Math.round((b + microGrain * 0.45) * holeShade)));
+
         outPx[idx] = r;
         outPx[idx + 1] = g;
         outPx[idx + 2] = b;
         outPx[idx + 3] = 255;
 
-        // Compute seamless 3D topographic height map from true surface luminance + periodic spherical relief
         const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-        const pRelief =
-          Math.sin(lambda * 6.0 + sinPhi * 4.0) * Math.cos(lambda * 4.0 - sinPhi * 5.0) * 10.0 +
-          Math.cos(lambda * 14.0) * cosPhi * 6.0;
-
         let elev = 128;
         if (isGasGiant) {
-          // Smooth banded cloud relief for Jupiter & Neptune
-          elev = Math.max(90, Math.min(165, Math.round(128 + (lum - 128) * 0.25)));
+          elev = Math.max(95, Math.min(165, Math.round(128 + (lum - 128) * 0.3)));
         } else {
-          // Rocky/icy bodies: real dark craters/troughs indent inward, bright rims/crests rise outward
-          elev = Math.max(20, Math.min(240, Math.round(lum * 0.92 + pRelief * cosPhi)));
+          elev = Math.max(8, Math.min(252, Math.round(lum * 0.85 + craterElevDelta + microGrain)));
         }
 
         hPx[idx] = elev;
@@ -451,71 +521,71 @@ window.ChronoSky3D = (function () {
     };
   }
 
-  // Build instant fallback 3D relief bundles and replace with real NASA imagery on load
+  // Build instant high-detail 3D cratered & banded bundles and refine with real NASA imagery on load
   const planetBundles = {
     earth: {
       colorMap: textureLoader.load(TEXTURE_URLS.earthDay),
       heightMap: textureLoader.load(TEXTURE_URLS.earthNormal),
-      bumpScale: 0.05,
-      dispScale: 0.02
+      bumpScale: 0.06,
+      dispScale: 0.03
     },
     spx_trk_002: {
-      ...build3DReliefBundleFromImage(null, [148, 163, 184], false, false),
-      bumpScale: 0.12,
-      dispScale: 0.07
+      ...build3DReliefBundleFromImage(null, [142, 152, 166], false, false, 102),
+      bumpScale: 0.18,
+      dispScale: 0.14
     },
     spx_trk_001: {
-      ...build3DReliefBundleFromImage(null, [165, 152, 138], true, false),
-      bumpScale: 0.12,
-      dispScale: 0.07
+      ...build3DReliefBundleFromImage(null, [156, 144, 132], true, false, 205),
+      bumpScale: 0.19,
+      dispScale: 0.15
     },
     mars: {
-      ...build3DReliefBundleFromImage(null, [194, 95, 58], true, false),
-      bumpScale: 0.11,
-      dispScale: 0.06
+      ...build3DReliefBundleFromImage(null, [182, 92, 58], true, false, 309),
+      bumpScale: 0.17,
+      dispScale: 0.12
     },
     jupiter: {
-      ...build3DReliefBundleFromImage(null, [210, 165, 115], true, true),
-      bumpScale: 0.015,
-      dispScale: 0.0
+      ...build3DReliefBundleFromImage(null, [196, 156, 116], true, true, 401),
+      bumpScale: 0.025,
+      dispScale: 0.01
     },
     neptune: {
-      ...build3DReliefBundleFromImage(null, [59, 130, 246], true, true),
-      bumpScale: 0.015,
-      dispScale: 0.0
+      ...build3DReliefBundleFromImage(null, [52, 114, 218], true, true, 501),
+      bumpScale: 0.025,
+      dispScale: 0.01
     },
     barnards_star: {
-      ...build3DReliefBundleFromImage(null, [239, 92, 58], false, true),
-      bumpScale: 0.02,
+      ...build3DReliefBundleFromImage(null, [225, 92, 56], false, true, 601),
+      bumpScale: 0.03,
       dispScale: 0.01
     },
     epsilon_indi_b: {
-      ...build3DReliefBundleFromImage(null, [168, 72, 118], false, true),
-      bumpScale: 0.02,
-      dispScale: 0.0
+      ...build3DReliefBundleFromImage(null, [158, 76, 118], false, true, 701),
+      bumpScale: 0.03,
+      dispScale: 0.01
     },
     wise_0855: {
-      ...build3DReliefBundleFromImage(null, [118, 62, 132], false, true),
-      bumpScale: 0.02,
-      dispScale: 0.0
+      ...build3DReliefBundleFromImage(null, [112, 68, 136], false, true, 801),
+      bumpScale: 0.03,
+      dispScale: 0.01
     },
     rw_aurigae: {
-      ...build3DReliefBundleFromImage(null, [245, 178, 78], false, true),
-      bumpScale: 0.025,
+      ...build3DReliefBundleFromImage(null, [232, 168, 74], false, true, 901),
+      bumpScale: 0.03,
       dispScale: 0.01
     },
     r_draconis: {
-      ...build3DReliefBundleFromImage(null, [234, 88, 64], false, true),
-      bumpScale: 0.025,
+      ...build3DReliefBundleFromImage(null, [218, 84, 62], false, true, 951),
+      bumpScale: 0.03,
       dispScale: 0.01
     }
   };
 
-  function loadAndProcessRealPlanetImage(key, url, baseRGB, isCircleDiscPhoto, isGasGiant) {
+  function loadAndProcessRealPlanetImage(key, url, baseRGB, isCircleDiscPhoto, isGasGiant, seedVal) {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = function () {
-      const bundle = build3DReliefBundleFromImage(img, baseRGB, isCircleDiscPhoto, isGasGiant);
+      const bundle = build3DReliefBundleFromImage(img, baseRGB, isCircleDiscPhoto, isGasGiant, seedVal);
       planetBundles[key].colorMap = bundle.colorMap;
       planetBundles[key].heightMap = bundle.heightMap;
       if (currentBodyKey === key) {
@@ -525,17 +595,11 @@ window.ChronoSky3D = (function () {
     img.src = url;
   }
 
-  // Load real NASA LRO (2:1 map) and New Horizons / OSIRIS / Voyager disc photos (unwrapped seamlessly!)
-  loadAndProcessRealPlanetImage("spx_trk_002", TEXTURE_URLS.moonLRO, [156, 172, 192], false, false);
-  loadAndProcessRealPlanetImage("spx_trk_001", TEXTURE_URLS.plutoNewHorizons, [165, 152, 138], true, false);
-  loadAndProcessRealPlanetImage("mars", TEXTURE_URLS.marsOSIRIS, [198, 98, 60], true, false);
-  loadAndProcessRealPlanetImage("jupiter", TEXTURE_URLS.jupiterVoyager, [212, 168, 118], true, true);
-  loadAndProcessRealPlanetImage("neptune", TEXTURE_URLS.neptuneVoyager, [64, 136, 248], true, true);
-  loadAndProcessRealPlanetImage("barnards_star", TEXTURE_URLS.barnardsStar, [239, 92, 58], false, true);
-  loadAndProcessRealPlanetImage("epsilon_indi_b", TEXTURE_URLS.epsilonIndiB, [168, 72, 118], false, true);
-  loadAndProcessRealPlanetImage("wise_0855", TEXTURE_URLS.wise0855, [118, 62, 132], false, true);
-  loadAndProcessRealPlanetImage("rw_aurigae", TEXTURE_URLS.rwAurigae, [245, 178, 78], false, true);
-  loadAndProcessRealPlanetImage("r_draconis", TEXTURE_URLS.rDraconis, [234, 88, 64], false, true);
+  loadAndProcessRealPlanetImage("spx_trk_002", TEXTURE_URLS.moonLRO, [142, 152, 166], false, false, 102);
+  loadAndProcessRealPlanetImage("spx_trk_001", TEXTURE_URLS.plutoNewHorizons, [156, 144, 132], true, false, 205);
+  loadAndProcessRealPlanetImage("mars", TEXTURE_URLS.marsOSIRIS, [182, 92, 58], true, false, 309);
+  loadAndProcessRealPlanetImage("jupiter", TEXTURE_URLS.jupiterVoyager, [196, 156, 116], true, true, 401);
+  loadAndProcessRealPlanetImage("neptune", TEXTURE_URLS.neptuneVoyager, [52, 114, 218], true, true, 501);
 
   // 4A. Realistic 3D Solar System (Displayed on Overview Screen: Central Sun + Revolving Planets in Orbits)
   const milkyWayGroup = new THREE.Group();
@@ -756,8 +820,8 @@ window.ChronoSky3D = (function () {
     displacementMap: planetBundles.spx_trk_002.heightMap,
     displacementScale: 0.07,
     displacementBias: -0.035,
-    roughness: 0.78,
-    metalness: 0.06
+    roughness: 0.88,
+    metalness: 0.03
   });
 
   const planetMesh = new THREE.Mesh(new THREE.SphereGeometry(planetRadius, 128, 128), planetMat);
@@ -823,7 +887,7 @@ window.ChronoSky3D = (function () {
       atmoMat.color.setHex(0xf97316);
     } else if (bodyKey === "jupiter") {
       planetMat.color.setHex(0xfef3c7);
-      planetMat.roughness = 0.55;
+      planetMat.roughness = 0.82;
       atmoMat.color.setHex(0xf59e0b);
     } else if (bodyKey === "barnards_star") {
       planetMat.color.setHex(0xff8a65);
@@ -831,7 +895,7 @@ window.ChronoSky3D = (function () {
       atmoMat.color.setHex(0xef4444);
     } else if (bodyKey === "epsilon_indi_b") {
       planetMat.color.setHex(0xd8b4fe);
-      planetMat.roughness = 0.55;
+      planetMat.roughness = 0.82;
       atmoMat.color.setHex(0xa855f7);
     } else if (bodyKey === "wise_0855") {
       planetMat.color.setHex(0xa78bfa);
@@ -847,7 +911,7 @@ window.ChronoSky3D = (function () {
       atmoMat.color.setHex(0xf97316);
     } else {
       planetMat.color.setHex(0xbfdbfe);
-      planetMat.roughness = 0.65;
+      planetMat.roughness = 0.84;
       atmoMat.color.setHex(0x38bdf8);
     }
     planetMat.needsUpdate = true;
